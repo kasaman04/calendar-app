@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calendar Card UI</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #3182CE;
+            overflow: hidden;
+            width: 100%;
+            height: 100vh;
+            position: fixed;
+        }
+        
+        /* Force mobile viewport */
+        @media screen and (min-width: 768px) {
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: #f0f0f0;
+                position: static;
+            }
+            
+            #root {
+                width: 375px;
+                height: 812px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                border: 2px solid #333;
+                overflow: hidden;
+            }
+        }
+        
+        .arch-photo {
+            border-top-left-radius: 50%;
+            border-top-right-radius: 50%;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .nav-arrow {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: color 0.2s;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            padding: 8px;
+        }
+        
+        .nav-arrow:hover {
+            color: white;
+        }
+        
+        .prev-arrow {
+            left: 16px;
+        }
+        
+        .next-arrow {
+            right: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const MONTHS = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const WEEKDAYS_SHORT = ['s', 'm', 't', 'w', 't', 'f', 's'];
+
+        const generateCalendarDays = (year, month) => {
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const days = [];
+            const current = new Date(startDate);
+            
+            for (let i = 0; i < 42; i++) {
+                days.push({
+                    date: current.getDate(),
+                    isCurrentMonth: current.getMonth() === month,
+                    fullDate: current.toISOString().split('T')[0]
+                });
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return days;
+        };
+
+        const getMonthImage = (month) => {
+            const images = [
+                'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=180&fit=crop', // January - Winter flowers
+                'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=180&fit=crop', // February - Pink flowers
+                'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=180&fit=crop', // March - Spring blooms
+                'https://images.unsplash.com/photo-1563789031959-4c53abc684c3?w=400&h=180&fit=crop', // April - Cherry blossoms
+                'https://images.unsplash.com/photo-1592062644994-6fc4faf8e8c2?w=400&h=180&fit=crop', // May - Roses
+                'https://images.unsplash.com/photo-1597848212624-e6421bb98fb6?w=400&h=180&fit=crop', // June - Summer flowers
+                'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=400&h=180&fit=crop', // July - Sunflowers
+                'https://images.unsplash.com/photo-1566146991569-696da38bb775?w=400&h=180&fit=crop', // August - Lavender
+                'https://images.unsplash.com/photo-1601985705806-5b2e9b3b71b4?w=400&h=180&fit=crop', // September - Autumn flowers
+                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=180&fit=crop', // October - Fall blooms
+                'https://images.unsplash.com/photo-1606041008023-472dfb5e530f?w=400&h=180&fit=crop', // November - Dried flowers
+                'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=180&fit=crop'  // December - Winter arrangements
+            ];
+            return images[month] || images[0];
+        };
+
+        const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth }) => {
+            const days = generateCalendarDays(year, month);
+
+            return (
+                <div className="w-full h-screen flex flex-col text-white font-poppins overflow-hidden" style={{ backgroundColor: '#3182CE' }}>
+                    {/* Top arch photo area - fixed size */}
+                    <div className="relative w-full flex items-end justify-center" style={{ height: '248px' }}>
+                        <div 
+                            className="arch-photo"
+                            style={{
+                                backgroundImage: `url(${getMonthImage(month)})`,
+                                width: '178px',
+                                height: '198px'
+                            }}
+                        />
+                    </div>
+
+                    {/* Month title with navigation - 20% of screen */}
+                    <div className="relative text-center mb-8 px-4" style={{ height: '10vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                            onClick={onPrevMonth}
+                            className="nav-arrow prev-arrow"
+                        >
+                            ‹
+                        </button>
+                        
+                        <h1 className="text-2xl font-bold tracking-wide">
+                            {monthName}
+                        </h1>
+                        
+                        <button 
+                            onClick={onNextMonth}
+                            className="nav-arrow next-arrow"
+                        >
+                            ›
+                        </button>
+                    </div>
+
+                    {/* Calendar grid - 40% of screen */}
+                    <div className="flex-1 pb-6 flex flex-col items-center">
+                        {/* Weekday headers */}
+                        <div className="grid grid-cols-7 gap-0.5 mb-4 w-64">
+                            {WEEKDAYS_SHORT.map((day, index) => (
+                                <div key={index} className="text-center text-xs font-normal text-white opacity-60 py-2"
+                                     style={{ width: '14%', minHeight: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {day}
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* Calendar days */}
+                        <div className="grid grid-cols-7 gap-0.5 w-64">
+                            {days.slice(0, 35).map((day, index) => (
+                                <div
+                                    key={index}
+                                    className={`
+                                        text-center py-1.5 text-sm font-normal
+                                        ${day.isCurrentMonth 
+                                            ? 'text-white' 
+                                            : 'text-white opacity-40'
+                                        }
+                                    `}
+                                    style={{ 
+                                        width: '14%', 
+                                        minHeight: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    {day.date}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CalendarApp = () => {
+            const currentDate = new Date();
+            const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
+            const [currentMonthIndex, setCurrentMonthIndex] = useState(currentDate.getMonth());
+
+            const handlePrevMonth = () => {
+                if (currentMonthIndex === 0) {
+                    setCurrentMonthIndex(11);
+                    setCurrentYear(currentYear - 1);
+                } else {
+                    setCurrentMonthIndex(currentMonthIndex - 1);
+                }
+            };
+
+            const handleNextMonth = () => {
+                if (currentMonthIndex === 11) {
+                    setCurrentMonthIndex(0);
+                    setCurrentYear(currentYear + 1);
+                } else {
+                    setCurrentMonthIndex(currentMonthIndex + 1);
+                }
+            };
+
+            return (
+                <Calendar
+                    year={currentYear}
+                    month={currentMonthIndex}
+                    monthName={MONTHS[currentMonthIndex]}
+                    onPrevMonth={handlePrevMonth}
+                    onNextMonth={handleNextMonth}
+                />
+            );
+        };
+
+        ReactDOM.render(<CalendarApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
