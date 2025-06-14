@@ -10,13 +10,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif'],
+                        'baloo': ['Baloo 2', 'cursive'],
+                        'comfortaa': ['Comfortaa', 'sans-serif'],
+                        'varela': ['Varela Round', 'sans-serif'],
                     }
                 }
             }
@@ -24,7 +26,7 @@
     </script>
     <style>
         html, body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Comfortaa', sans-serif;
             margin: 0;
             padding: 0;
             background: #3182CE;
@@ -65,7 +67,7 @@
         }
         
         .nav-arrow {
-            font-size: 16px;
+            font-size: 24px;
             color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
             transition: color 0.2s;
@@ -74,7 +76,7 @@
             transform: translateY(-50%);
             background: none;
             border: none;
-            padding: 8px;
+            padding: 12px;
         }
         
         .nav-arrow:hover {
@@ -87,6 +89,18 @@
         
         .next-arrow {
             right: 16px;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), inset 0 0 5px rgba(255, 255, 255, 0.5);
+            }
+            100% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3);
+            }
         }
     </style>
 </head>
@@ -101,7 +115,7 @@
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
 
-        const WEEKDAYS_SHORT = ['s', 'm', 't', 'w', 't', 'f', 's'];
+        const WEEKDAYS_SHORT = ['日', '月', '火', '水', '木', '金', '土'];
 
         const generateCalendarDays = (year, month) => {
             const firstDay = new Date(year, month, 1);
@@ -144,9 +158,13 @@
 
         const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth }) => {
             const days = generateCalendarDays(year, month);
+            
+            // 今日の日付を取得
+            const today = new Date();
+            const todayDateStr = today.toISOString().split('T')[0];
 
             return (
-                <div className="w-full h-screen flex flex-col text-white font-poppins overflow-hidden" style={{ backgroundColor: '#3182CE' }}>
+                <div className="w-full h-screen flex flex-col text-white font-comfortaa overflow-hidden" style={{ backgroundColor: '#3182CE', maxWidth: '400px', margin: '0 auto' }}>
                     {/* Top arch photo area - fixed size */}
                     <div className="relative w-full flex items-end justify-center" style={{ height: '248px' }}>
                         <div 
@@ -159,57 +177,72 @@
                         />
                     </div>
 
-                    {/* Month title with navigation - 20% of screen */}
-                    <div className="relative text-center mb-8 px-4" style={{ height: '10vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Month title with navigation - larger size */}
+                    <div className="relative text-center mb-3 px-4" style={{ height: '15vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <button 
                             onClick={onPrevMonth}
                             className="nav-arrow prev-arrow"
+                            style={{ fontSize: '28px' }}
                         >
                             ‹
                         </button>
                         
-                        <h1 className="text-2xl font-bold tracking-wide">
+                        <h1 className="text-4xl font-bold tracking-wide font-baloo" style={{ margin: '0 30px', letterSpacing: '0.5px' }}>
                             {monthName}
                         </h1>
                         
                         <button 
                             onClick={onNextMonth}
                             className="nav-arrow next-arrow"
+                            style={{ fontSize: '28px' }}
                         >
                             ›
                         </button>
                     </div>
 
                     {/* Calendar grid - 40% of screen */}
-                    <div className="flex-1 pb-6 flex flex-col items-center">
-                        {/* Weekday headers */}
-                        <div className="grid grid-cols-7 gap-0.5 mb-4 w-64">
+                    <div className="flex-1 pb-6 flex flex-col items-center" style={{ marginTop: '-8px' }}>
+                        {/* Weekday headers - larger size */}
+                        <div className="grid grid-cols-7 gap-0 mb-4 w-full" style={{maxWidth: '280px', margin: '0 auto'}}>
                             {WEEKDAYS_SHORT.map((day, index) => (
-                                <div key={index} className="text-center text-xs font-normal text-white opacity-60 py-2"
-                                     style={{ width: '14%', minHeight: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div key={index} className="text-center text-sm font-normal text-white opacity-60 py-2 font-varela"
+                                     style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
                                     {day}
                                 </div>
                             ))}
                         </div>
                         
-                        {/* Calendar days */}
-                        <div className="grid grid-cols-7 gap-0.5 w-64">
+                        {/* Calendar days - larger size */}
+                        <div className="grid grid-cols-7 gap-0 w-full" style={{maxWidth: '280px', margin: '0 auto'}}>
                             {days.slice(0, 35).map((day, index) => (
                                 <div
                                     key={index}
                                     className={`
-                                        text-center py-1.5 text-sm font-normal
+                                        text-center text-lg font-normal font-comfortaa rounded-full
                                         ${day.isCurrentMonth 
                                             ? 'text-white' 
                                             : 'text-white opacity-40'
                                         }
+                                        ${day.fullDate === todayDateStr && day.isCurrentMonth
+                                            ? 'font-bold'
+                                            : ''
+                                        }
                                     `}
                                     style={{ 
-                                        width: '14%', 
-                                        minHeight: '32px',
+                                        width: '40px',
+                                        height: '40px', 
+                                        margin: '0 auto',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        justifyContent: 'center'
+                                        justifyContent: 'center',
+                                        ...(day.fullDate === todayDateStr && day.isCurrentMonth
+                                            ? { 
+                                                border: '2px solid rgba(255, 255, 255, 0.9)',
+                                                borderRadius: '50%',
+                                                boxShadow: '0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3)',
+                                                animation: 'pulse 2s infinite'
+                                              }
+                                            : {})
                                     }}
                                 >
                                     {day.date}
