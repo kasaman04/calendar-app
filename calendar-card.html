@@ -142,6 +142,136 @@
                 box-shadow: 0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3);
             }
         }
+
+        /* 4時間分割バーのスタイル */
+        .time-bar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .time-bar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .time-bar-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .time-bar-overlay.active .time-bar-container {
+            transform: scale(1);
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .time-slot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 16px 12px;
+            color: white;
+            font-family: 'Comfortaa', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .time-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .time-slot:active {
+            transform: translateY(0);
+        }
+
+        .time-slot::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .time-slot:hover::before {
+            left: 100%;
+        }
+
+        .time-slot-0 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .time-slot-4 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .time-slot-8 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .time-slot-12 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .time-slot-16 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .time-slot-20 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #666;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
+
+        .date-title {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+            font-family: 'Baloo 2', cursive;
+        }
+
+        .date-subtitle {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
@@ -211,12 +341,207 @@
 
         const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth }) => {
             const days = generateCalendarDays(year, month);
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [showTimeBar, setShowTimeBar] = useState(false);
+            const [timeSlots, setTimeSlots] = useState({});
+            const [showActivityMenu, setShowActivityMenu] = useState(false);
+            const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
             
-            // 花火をトリガーする関数
+            // 日付クリック時の処理
             const handleDayClick = (day) => {
                 if (day.date === 12 && day.isCurrentMonth) {
                     triggerFireworks();
+                } else if (day.isCurrentMonth) {
+                    setSelectedDate(day);
+                    setShowTimeBar(true);
                 }
+            };
+
+            // タイムバーを閉じる
+            const closeTimeBar = () => {
+                setShowTimeBar(false);
+                setSelectedDate(null);
+                setShowActivityMenu(false);
+                setSelectedSlotIndex(null);
+            };
+
+            // タイムスロットクリック時の処理
+            const handleSlotClick = (slotIndex) => {
+                const dateKey = selectedDate?.fullDate;
+                const currentActivity = timeSlots[`${dateKey}-${slotIndex}`];
+                
+                if (currentActivity) {
+                    // 既に予定が入っている場合はリセット
+                    setTimeSlots(prev => {
+                        const newSlots = { ...prev };
+                        delete newSlots[`${dateKey}-${slotIndex}`];
+                        return newSlots;
+                    });
+                } else {
+                    // 予定が入っていない場合は選択メニューを表示
+                    setSelectedSlotIndex(slotIndex);
+                    setShowActivityMenu(true);
+                }
+            };
+
+            // 活動選択時の処理
+            const handleActivitySelect = (activity) => {
+                const dateKey = selectedDate?.fullDate;
+                if (dateKey && selectedSlotIndex !== null) {
+                    setTimeSlots(prev => ({
+                        ...prev,
+                        [`${dateKey}-${selectedSlotIndex}`]: activity
+                    }));
+                }
+                setShowActivityMenu(false);
+                setSelectedSlotIndex(null);
+            };
+
+            // スロットの色を取得
+            const getSlotColor = (slotIndex) => {
+                const dateKey = selectedDate?.fullDate;
+                const activity = timeSlots[`${dateKey}-${slotIndex}`];
+                const colors = {
+                    work: '#ff9a9e',    // 可愛いピンク
+                    rest: '#a8e6cf',    // 優しいミントグリーン
+                    outing: '#ffd3a5',  // 温かいピーチ
+                    study: '#c7ceea'    // 柔らかいラベンダー
+                };
+                return activity ? colors[activity] : 'transparent';
+            };
+
+            // TimeBar24 コンポーネント（インライン実装）
+            const TimeLabel = ({ index, text }) => (
+                React.createElement('span', {
+                    className: 'absolute text-sm font-medium text-gray-800',
+                    style: { 
+                        left: `${(index / 6) * 100}%`, 
+                        transform: 'translateX(-50%)',
+                        top: '100%',
+                        marginTop: '4px'
+                    }
+                }, text)
+            );
+
+            const TimeBar24 = () => (
+                React.createElement('div', { 
+                    className: 'relative w-full',
+                    style: { marginBottom: '8px' }
+                }, [
+                    // メインのタイムバー
+                    React.createElement('div', {
+                        key: 'bar',
+                        className: 'grid grid-cols-6 gap-0',
+                        style: {
+                            height: '12px',
+                            borderRadius: '9999px',
+                            border: '1px solid #343A40',
+                            backgroundColor: 'transparent'
+                        }
+                    }, Array.from({ length: 6 }, (_, index) => 
+                        React.createElement('div', {
+                            key: index,
+                            onClick: () => handleSlotClick(index),
+                            style: {
+                                height: '100%',
+                                backgroundColor: getSlotColor(index),
+                                borderRight: index < 5 ? '1px solid #343A40' : 'none',
+                                borderTopLeftRadius: index === 0 ? '9999px' : '0',
+                                borderBottomLeftRadius: index === 0 ? '9999px' : '0',
+                                borderTopRightRadius: index === 5 ? '9999px' : '0',
+                                borderBottomRightRadius: index === 5 ? '9999px' : '0',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s ease'
+                            }
+                        })
+                    )),
+                    // タイムラベル
+                    ...['4', '8', '12', '16', '20'].map((time, index) => 
+                        React.createElement(TimeLabel, {
+                            key: time,
+                            index: index + 1,
+                            text: time
+                        })
+                    )
+                ])
+            );
+
+            // 活動選択メニュー
+            const ActivityMenu = () => {
+                if (!showActivityMenu) return null;
+
+                const activities = [
+                    { key: 'work', label: '仕事', color: '#ff9a9e' },
+                    { key: 'rest', label: '休み', color: '#a8e6cf' },
+                    { key: 'outing', label: '外出', color: '#ffd3a5' },
+                    { key: 'study', label: '勉強', color: '#c7ceea' }
+                ];
+
+                return React.createElement('div', {
+                    style: {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+                        border: '1px solid #e5e7eb',
+                        zIndex: 1001,
+                        minWidth: '200px'
+                    }
+                }, [
+                    React.createElement('div', {
+                        key: 'title',
+                        style: {
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            marginBottom: '12px',
+                            textAlign: 'center',
+                            color: '#333'
+                        }
+                    }, '活動を選択'),
+                    ...activities.map(activity => 
+                        React.createElement('button', {
+                            key: activity.key,
+                            onClick: () => handleActivitySelect(activity.key),
+                            style: {
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                width: '100%',
+                                padding: '10px 12px',
+                                border: 'none',
+                                borderRadius: '8px',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s ease',
+                                marginBottom: '4px'
+                            },
+                            onMouseEnter: (e) => e.target.style.backgroundColor = '#f3f4f6',
+                            onMouseLeave: (e) => e.target.style.backgroundColor = 'transparent'
+                        }, [
+                            React.createElement('div', {
+                                key: 'color',
+                                style: {
+                                    width: '16px',
+                                    height: '16px',
+                                    borderRadius: '4px',
+                                    backgroundColor: activity.color
+                                }
+                            }),
+                            React.createElement('span', {
+                                key: 'label',
+                                style: {
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    color: '#333'
+                                }
+                            }, activity.label)
+                        ])
+                    )
+                ]);
             };
             
             // 今日の日付を取得
@@ -281,7 +606,7 @@
                                     style={{
                                         width: '40px',
                                         height: '40px',
-                                        cursor: 'default',
+                                        cursor: day.isCurrentMonth ? 'pointer' : 'default',
                                         animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none'
                                     }}
                                     onClick={() => handleDayClick(day)}
@@ -289,6 +614,26 @@
                                     {day.date}
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* 4時間分割バー */}
+                    <div className={`time-bar-overlay ${showTimeBar ? 'active' : ''}`} onClick={closeTimeBar}>
+                        <div className="time-bar-container" onClick={(e) => e.stopPropagation()}>
+                            <button className="close-btn" onClick={closeTimeBar}>×</button>
+                            
+                            <div className="date-title">
+                                {selectedDate ? `${selectedDate.date}日の予定` : ''}
+                            </div>
+                            <div className="date-subtitle">
+                                時間帯を選択してください
+                            </div>
+
+                            {/* 極細タイムバー */}
+                            <div style={{ marginBottom: '20px', position: 'relative' }}>
+                                <TimeBar24 />
+                                <ActivityMenu />
+                            </div>
                         </div>
                     </div>
                 </div>
