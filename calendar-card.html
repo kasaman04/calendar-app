@@ -30,10 +30,10 @@
             margin: 0;
             padding: 0;
             background: #3182CE;
-            overflow: hidden;
             width: 100%;
-            height: 100vh;
-            position: fixed;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: scroll;
         }
         
         /* 花火エフェクト用のスタイル */
@@ -78,22 +78,24 @@
         
         /* Force mobile viewport */
         @media screen and (min-width: 768px) {
+            html, body {
+                background: #f0f0f0;
+                overflow-y: scroll;
+            }
+            
             body {
                 display: flex;
                 justify-content: center;
-                align-items: center;
+                align-items: flex-start;
                 min-height: 100vh;
-                background: #f0f0f0;
-                position: static;
+                padding: 20px 0;
             }
             
             #root {
                 width: 375px;
-                height: 812px;
                 border-radius: 20px;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.3);
                 border: 2px solid #333;
-                overflow: hidden;
             }
         }
         
@@ -346,6 +348,7 @@
             const [timeSlots, setTimeSlots] = useState({});
             const [showActivityMenu, setShowActivityMenu] = useState(false);
             const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
+            const [showScheduleList, setShowScheduleList] = useState(false);
             
             // 日付クリック時の処理
             const handleDayClick = (day) => {
@@ -543,13 +546,94 @@
                     )
                 ]);
             };
+
+            // 予定が入っている日のデータを取得（現在表示中の月のみ）
+            const getScheduledDays = () => {
+                const daysWithSchedules = {};
+                const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                
+                // timeSlots から現在の月の予定のみを抽出
+                Object.keys(timeSlots).forEach(key => {
+                    const [keyYear, keyMonth, day, slotIndex] = key.split('-');
+                    const keyYearMonth = `${keyYear}-${keyMonth}`;
+                    
+                    // 現在表示中の年月と一致する場合のみ処理
+                    if (keyYearMonth === currentYearMonth) {
+                        const date = `${keyYear}-${keyMonth}-${day}`;
+                        if (!daysWithSchedules[date]) {
+                            daysWithSchedules[date] = Array(6).fill(null);
+                        }
+                        daysWithSchedules[date][parseInt(slotIndex)] = timeSlots[key];
+                    }
+                });
+
+                console.log('Current month filter:', currentYearMonth); // デバッグ用
+                console.log('timeSlots:', timeSlots); // デバッグ用
+                console.log('daysWithSchedules (filtered):', daysWithSchedules); // デバッグ用
+
+                // 日付順にソート（日付文字列で比較）
+                const result = Object.entries(daysWithSchedules)
+                    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                    .map(([date, slots]) => ({ date, slots }));
+                
+                console.log('getScheduledDays result (filtered):', result); // デバッグ用
+                console.log('result length:', result.length); // デバッグ用
+                return result;
+            };
+
+            // 個別タイムバー表示コンポーネント
+            const ScheduledDayBar = ({ date, slots }) => (
+                React.createElement('div', {
+                    style: {
+                        marginBottom: '12px',
+                        padding: '8px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px'
+                    }
+                }, [
+                    React.createElement('div', {
+                        key: 'date-label',
+                        style: {
+                            fontSize: '12px',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            marginBottom: '4px',
+                            textAlign: 'center'
+                        }
+                    }, `${parseInt(date.split('-')[2])}日`),
+                    React.createElement('div', {
+                        key: 'timeline',
+                        className: 'grid grid-cols-6 gap-0',
+                        style: {
+                            height: '8px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            overflow: 'hidden'
+                        }
+                    }, slots.map((activity, index) => {
+                        const colors = {
+                            work: '#ff9a9e',
+                            rest: '#a8e6cf',
+                            outing: '#ffd3a5',
+                            study: '#c7ceea'
+                        };
+                        return React.createElement('div', {
+                            key: index,
+                            style: {
+                                height: '100%',
+                                backgroundColor: activity ? colors[activity] : 'transparent',
+                                borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
+                            }
+                        });
+                    }))
+                ])
+            );
             
             // 今日の日付を取得
             const today = new Date();
             const todayDateStr = today.toISOString().split('T')[0];
 
             return (
-                <div className="w-full h-screen flex flex-col text-white font-comfortaa overflow-hidden" style={{ backgroundColor: '#3182CE', maxWidth: '400px', margin: '0 auto' }}>
+                <div className="w-full flex flex-col text-white font-comfortaa" style={{ backgroundColor: '#3182CE', maxWidth: '400px', margin: '0 auto', minHeight: '100vh' }}>
                     {/* Top arch photo area - fixed size */}
                     <div className="relative w-full flex items-end justify-center" style={{ height: '248px' }}>
                         <div 
@@ -586,7 +670,7 @@
                     </div>
 
                     {/* Calendar grid - 40% of screen */}
-                    <div className="flex-1 pb-6 flex flex-col items-center" style={{ marginTop: '-8px' }}>
+                    <div className="pb-6 flex flex-col items-center" style={{ marginTop: '-8px', flex: '0 0 auto' }}>
                         {/* Weekday headers - larger size */}
                         <div className="grid grid-cols-7 gap-0 mb-4 w-full" style={{maxWidth: '280px', margin: '0 auto'}}>
                             {WEEKDAYS_SHORT.map((day, index) => (
@@ -615,6 +699,140 @@
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+
+                    {/* 予定タイムライン表示 - 常に表示 */}
+                    <div style={{ 
+                        padding: '16px',
+                        marginTop: '8px',
+                        marginBottom: '100px',
+                        minHeight: '60px',
+                        background: 'rgba(0, 0, 0, 0.1)',
+                        flex: '0 0 auto'
+                    }}>
+                        <div
+                            onClick={() => {
+                                const currentMonthSchedules = getScheduledDays();
+                                console.log('予定一覧クリック', currentMonthSchedules);
+                                setShowScheduleList(!showScheduleList);
+                            }}
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                marginBottom: showScheduleList ? '12px' : '0',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                padding: '8px',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                transition: 'background-color 0.2s ease'
+                            }}
+                        >
+                            予定一覧 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
+                        </div>
+                        
+                        <div style={{
+                            fontSize: '10px',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            marginBottom: '8px'
+                        }}>
+                            デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
+                        </div>
+                        
+                        {showScheduleList && Object.keys(timeSlots).length > 0 && (
+                            <div style={{
+                                paddingRight: '4px'
+                            }}>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    marginBottom: '8px'
+                                }}>
+                                    予定詳細: {getScheduledDays().length}日分の予定があります
+                                </div>
+                                {getScheduledDays().map((dayData, index) => {
+                                    console.log('Rendering dayData:', dayData, 'index:', index); // デバッグ用
+                                    const date = new Date(dayData.date);
+                                    const monthDay = `${date.getMonth() + 1}月${date.getDate()}日`;
+                                    
+                                    return (
+                                        <div
+                                            key={dayData.date}
+                                            style={{
+                                                marginBottom: '12px',
+                                                padding: '10px',
+                                                background: 'rgba(255, 255, 255, 0.15)',
+                                                borderRadius: '8px',
+                                                border: '1px solid rgba(255, 255, 255, 0.2)'
+                                            }}
+                                        >
+                                            <div style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                marginBottom: '6px',
+                                                textAlign: 'center'
+                                            }}>
+                                                {monthDay}
+                                            </div>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gap: '1px',
+                                                height: '12px',
+                                                borderRadius: '6px',
+                                                border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                overflow: 'hidden',
+                                                background: 'rgba(255, 255, 255, 0.1)'
+                                            }}>
+                                                {dayData.slots.map((activity, slotIndex) => {
+                                                    const colors = {
+                                                        work: '#ff9a9e',
+                                                        rest: '#a8e6cf',
+                                                        outing: '#ffd3a5',
+                                                        study: '#c7ceea'
+                                                    };
+                                                    return (
+                                                        <div
+                                                            key={slotIndex}
+                                                            style={{
+                                                                height: '100%',
+                                                                backgroundColor: activity ? colors[activity] : 'transparent'
+                                                            }}
+                                                            title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${
+                                                                activity 
+                                                                    ? activity === 'work' ? '仕事' 
+                                                                      : activity === 'rest' ? '休み'
+                                                                      : activity === 'outing' ? '外出'
+                                                                      : '勉強'
+                                                                    : '空き'
+                                                            }`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                            
+                                            {/* 時間ラベル */}
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gap: '1px',
+                                                marginTop: '4px',
+                                                fontSize: '8px',
+                                                color: 'rgba(255, 255, 255, 0.6)',
+                                                textAlign: 'center'
+                                            }}>
+                                                {[0, 4, 8, 12, 16, 20].map((hour, idx) => (
+                                                    <div key={idx}>{hour}</div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* 4時間分割バー */}
