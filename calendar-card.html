@@ -36,6 +36,46 @@
             position: fixed;
         }
         
+        /* 花火エフェクト用のスタイル */
+        #fireworks-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background-color: transparent !important;
+        }
+        
+        #fireworks-canvas.active {
+            opacity: 1;
+        }
+        
+        .day-12 {
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .day-12::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 6px;
+            height: 6px;
+            background-color: #ffcc00;
+            border-radius: 50%;
+            animation: twinkle 1s infinite alternate;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
         /* Force mobile viewport */
         @media screen and (min-width: 768px) {
             body {
@@ -106,6 +146,8 @@
 </head>
 <body>
     <div id="root"></div>
+    <canvas id="fireworks-canvas"></canvas>
+    <script src="fireworks.js"></script>
 
     <script type="text/babel">
         const { useState } = React;
@@ -156,8 +198,26 @@
             return images[month] || images[0];
         };
 
+        // 花火エフェクトのトリガー関数
+        // 花火エフェクトのトリガー関数
+        const triggerFireworks = () => {
+            // 外部ファイルのfireworks.jsに定義されたdrawFireworks関数を呼び出す
+            if (typeof drawFireworks === 'function') {
+                drawFireworks();
+            } else {
+                console.error('drawFireworks function not found');
+            }
+        };
+
         const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth }) => {
             const days = generateCalendarDays(year, month);
+            
+            // 花火をトリガーする関数
+            const handleDayClick = (day) => {
+                if (day.date === 12 && day.isCurrentMonth) {
+                    triggerFireworks();
+                }
+            };
             
             // 今日の日付を取得
             const today = new Date();
@@ -215,35 +275,16 @@
                         {/* Calendar days - larger size */}
                         <div className="grid grid-cols-7 gap-0 w-full" style={{maxWidth: '280px', margin: '0 auto'}}>
                             {days.slice(0, 35).map((day, index) => (
-                                <div
+                                <div 
                                     key={index}
-                                    className={`
-                                        text-center text-lg font-normal font-comfortaa rounded-full
-                                        ${day.isCurrentMonth 
-                                            ? 'text-white' 
-                                            : 'text-white opacity-40'
-                                        }
-                                        ${day.fullDate === todayDateStr && day.isCurrentMonth
-                                            ? 'font-bold'
-                                            : ''
-                                        }
-                                    `}
-                                    style={{ 
+                                    className={`flex items-center justify-center rounded-full text-md ${day.isCurrentMonth ? 'text-white' : 'text-white opacity-30'} ${day.fullDate === todayDateStr ? 'bg-white bg-opacity-25' : ''} ${day.date === 12 && day.isCurrentMonth ? 'day-12' : ''}`}
+                                    style={{
                                         width: '40px',
-                                        height: '40px', 
-                                        margin: '0 auto',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        ...(day.fullDate === todayDateStr && day.isCurrentMonth
-                                            ? { 
-                                                border: '2px solid rgba(255, 255, 255, 0.9)',
-                                                borderRadius: '50%',
-                                                boxShadow: '0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3)',
-                                                animation: 'pulse 2s infinite'
-                                              }
-                                            : {})
+                                        height: '40px',
+                                        cursor: 'default',
+                                        animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none'
                                     }}
+                                    onClick={() => handleDayClick(day)}
                                 >
                                     {day.date}
                                 </div>
