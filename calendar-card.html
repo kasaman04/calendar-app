@@ -765,7 +765,62 @@
                                                 padding: '10px',
                                                 background: 'rgba(255, 255, 255, 0.15)',
                                                 borderRadius: '8px',
-                                                border: '1px solid rgba(255, 255, 255, 0.2)'
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                cursor: 'pointer', // マウスを持ってきた時にポインターカーソルを表示
+                                                transition: 'all 0.3s ease', // ホバー効果のためのトランジション
+                                                userSelect: 'none' // テキスト選択を防止
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                // ホバー時の視覚効果
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                                                e.currentTarget.style.transform = 'scale(1.02)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                // ホバー終了時に元に戻す
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                            }}
+                                            onDoubleClick={(e) => {
+                                                console.log('ダブルクリックが検出されました:', dayData.date);
+                                                
+                                                // フラッシュエフェクト
+                                                const element = e.currentTarget;
+                                                const originalBackground = element.style.background;
+                                                element.style.background = 'rgba(239, 68, 68, 0.6)';
+                                                
+                                                // 500ms後に元の色に戻す
+                                                setTimeout(() => {
+                                                    element.style.background = originalBackground;
+                                                }, 500);
+                                                
+                                                console.log('削除を実行します:', dayData.date);
+                                                
+                                                // この日の予定をすべて削除（確認なし）
+                                                setTimeSlots(prev => {
+                                                    const newSlots = { ...prev };
+                                                    // この日付のslotをすべて削除
+                                                    Object.keys(newSlots).forEach(key => {
+                                                        if (key.includes(dayData.date)) {
+                                                            delete newSlots[key];
+                                                        }
+                                                    });
+                                                    console.log('更新されたスロット:', newSlots);
+                                                    return newSlots;
+                                                });
+                                            }}
+                                            onClick={(e) => {
+                                                setTimeout(() => {
+                                                    if (e.detail === 1) { // シングルクリック
+                                                        // 既存のUIを使用して編集モードに入る
+                                                        const dateObj = {
+                                                            date: parseInt(dayData.date.split('/')[2]),
+                                                            fullDate: dayData.date,
+                                                            isCurrentMonth: true
+                                                        };
+                                                        setSelectedDate(dateObj);
+                                                        setShowTimeBar(true);
+                                                    }
+                                                }, 200); // 200ms遅延でダブルクリックと区別
                                             }}
                                         >
                                             <div style={{
