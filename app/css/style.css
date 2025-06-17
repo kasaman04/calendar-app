@@ -2,7 +2,7 @@ html, body {
     font-family: 'Comfortaa', sans-serif;
     margin: 0;
     padding: 0;
-    background: #3182CE;
+    background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
     width: 100%;
     height: auto;
     overflow-x: hidden;
@@ -75,7 +75,7 @@ html, body {
 /* ユーザー設定画面のスタイル */
 .settings-screen {
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,7 +115,7 @@ html, body {
 
 .form-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #4A90E2;
 }
 
 .form-select {
@@ -132,13 +132,13 @@ html, body {
 
 .form-select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #4A90E2;
 }
 
 .submit-button {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(45deg, #667eea, #764ba2);
+    background: linear-gradient(45deg, #4A90E2, #357ABD);
     color: white;
     border: none;
     border-radius: 10px;

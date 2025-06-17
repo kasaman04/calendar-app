@@ -41,7 +41,20 @@
     <script src="js/components/App.js"></script>
     
     <script type="text/babel">
-        ReactDOM.render(<App />, document.getElementById('root'));
+        console.log('Starting app...');
+        console.log('UserData:', typeof UserData);
+        console.log('Helpers:', typeof Helpers);
+        console.log('UserSettings:', typeof UserSettings);
+        console.log('CalendarApp:', typeof CalendarApp);
+        console.log('App:', typeof App);
+        
+        try {
+            ReactDOM.render(React.createElement(App), document.getElementById('root'));
+            console.log('App rendered successfully');
+        } catch (error) {
+            console.error('Error rendering app:', error);
+            document.getElementById('root').innerHTML = '<div style="padding:20px;color:red;">Error: ' + error.message + '</div>';
+        }
     </script>
 </body>
 </html>

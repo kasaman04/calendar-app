@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calendar App</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="root"></div>
+    <canvas id="fireworks-canvas"></canvas>
+    
+    <script type="text/babel">
+        // ユーザーデータ管理
+        const UserData = {
+            saveUserSettings(data) {
+                localStorage.setItem('calendarApp_userSettings', JSON.stringify(data));
+            },
+            
+            getUserSettings() {
+                const saved = localStorage.getItem('calendarApp_userSettings');
+                return saved ? JSON.parse(saved) : null;
+            },
+            
+            isSetupComplete() {
+                const settings = this.getUserSettings();
+                return settings && settings.name && settings.birthdate;
+            },
+            
+            hasTodayFortuneShown() {
+                const today = new Date().toDateString();
+                const lastShown = localStorage.getItem('calendarApp_lastFortuneDate');
+                return lastShown === today;
+            },
+            
+            markTodayFortuneShown() {
+                const today = new Date().toDateString();
+                localStorage.setItem('calendarApp_lastFortuneDate', today);
+            },
+            
+            isBirthday() {
+                const settings = this.getUserSettings();
+                if (!settings || !settings.birthdate) return false;
+                
+                const today = new Date();
+                const birthdate = new Date(settings.birthdate);
+                
+                return today.getMonth() === birthdate.getMonth() && 
+                       today.getDate() === birthdate.getDate();
+            }
+        };
+
+        // ヘルパー関数
+        const Helpers = {
+            generateFortune(birthdate) {
+                const fortunes = [
+                    "今日は新しいチャレンジに最適な日です。積極的に行動しましょう！",
+                    "人との出会いがあなたに良い影響をもたらします。",
+                    "クリエイティブな活動に力を注ぐと良い結果が得られそうです。",
+                    "健康に気を付けながら、バランスの取れた一日を過ごしましょう。",
+                    "直感を信じて決断することで、幸運が舞い込みます。",
+                    "今日はあなたの魅力が輝く日です。自信を持って過ごしましょう！",
+                    "周りの人への思いやりが、あなたに幸せを運んでくれます。",
+                    "美しいものに触れることで、心が豊かになる一日です。",
+                    "家族や友人との時間を大切にすると良いことがありそうです。",
+                    "新しい趣味や学びにチャレンジすると運気がアップします。"
+                ];
+                
+                const randomIndex = Math.floor(Math.random() * fortunes.length);
+                return fortunes[randomIndex];
+            }
+        };
+
+        // ユーザー設定画面コンポーネント
+        const UserSettings = ({ onComplete }) => {
+            const [formData, setFormData] = React.useState({
+                name: '',
+                birthdate: ''
+            });
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                
+                if (!formData.name.trim() || !formData.birthdate) {
+                    alert('すべての項目を入力してください。');
+                    return;
+                }
+
+                UserData.saveUserSettings({
+                    name: formData.name.trim(),
+                    birthdate: formData.birthdate,
+                    setupDate: new Date().toISOString()
+                });
+
+                onComplete();
+            };
+
+            return (
+                <div className="settings-screen">
+                    <div className="settings-form">
+                        <h1 style={{ 
+                            textAlign: 'center', 
+                            marginBottom: '30px', 
+                            color: '#333',
+                            fontFamily: 'Baloo 2, cursive',
+                            fontSize: '28px'
+                        }}>はじめまして！</h1>
+                        
+                        <p style={{ 
+                            textAlign: 'center', 
+                            marginBottom: '30px', 
+                            color: '#666',
+                            fontSize: '14px',
+                            lineHeight: '1.6'
+                        }}>あなたの情報を教えてください。<br/>毎日の占いと誕生日のお祝いをお届けします！</p>
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label className="form-label">ニックネーム</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className="form-input"
+                                    placeholder="あなたのニックネームを入力してください"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">生年月日</label>
+                                <input
+                                    type="date"
+                                    name="birthdate"
+                                    value={formData.birthdate}
+                                    onChange={handleChange}
+                                    className="form-input"
+                                />
+                            </div>
+
+
+                            <button type="submit" className="submit-button">
+                                設定完了
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // 占いモーダルコンポーネント
+        const FortuneModal = ({ name, fortune, onClose }) => {
+            return (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10000,
+                    padding: '20px'
+                }} onClick={onClose}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '20px',
+                        padding: '30px',
+                        maxWidth: '400px',
+                        width: '100%',
+                        textAlign: 'center',
+                        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+                    }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔮</div>
+                        
+                        <h2 style={{
+                            fontFamily: 'Baloo 2, cursive',
+                            fontSize: '24px',
+                            marginBottom: '10px',
+                            color: '#333'
+                        }}>{name}さんの今日の運勢</h2>
+                        
+                        <p style={{
+                            fontSize: '16px',
+                            lineHeight: '1.6',
+                            color: '#666',
+                            marginBottom: '30px'
+                        }}>{fortune}</p>
+                        
+                        <button onClick={onClose} style={{
+                            background: 'linear-gradient(45deg, #4A90E2, #357ABD)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '12px 30px',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                        }}>ありがとう！</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // メインアプリケーション
+        const App = () => {
+            const [isSetupComplete, setIsSetupComplete] = React.useState(false);
+            const [showFortune, setShowFortune] = React.useState(false);
+            const [todayFortune, setTodayFortune] = React.useState('');
+            const [loading, setLoading] = React.useState(true);
+
+            React.useEffect(() => {
+                const initializeApp = () => {
+                    setLoading(true);
+                    
+                    const setupComplete = UserData.isSetupComplete();
+                    setIsSetupComplete(setupComplete);
+                    
+                    if (setupComplete) {
+                        if (!UserData.hasTodayFortuneShown()) {
+                            const userSettings = UserData.getUserSettings();
+                            const fortune = Helpers.generateFortune(userSettings.birthdate);
+                            setTodayFortune(fortune);
+                            setShowFortune(true);
+                            UserData.markTodayFortuneShown();
+                        }
+                    }
+                    
+                    setLoading(false);
+                };
+
+                initializeApp();
+            }, []);
+
+            const handleSetupComplete = () => {
+                setIsSetupComplete(true);
+                
+                const userSettings = UserData.getUserSettings();
+                const fortune = Helpers.generateFortune(userSettings.birthdate);
+                setTodayFortune(fortune);
+                setShowFortune(true);
+                UserData.markTodayFortuneShown();
+            };
+
+            const closeFortune = () => {
+                setShowFortune(false);
+            };
+
+            if (loading) {
+                return (
+                    <div style={{
+                        minHeight: '100vh',
+                        background: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '18px',
+                        fontFamily: 'Baloo 2, cursive'
+                    }}>Loading...</div>
+                );
+            }
+
+            if (!isSetupComplete) {
+                return <UserSettings onComplete={handleSetupComplete} />;
+            }
+
+            const userSettings = UserData.getUserSettings();
+            
+            return (
+                <div>
+                    {showFortune && (
+                        <FortuneModal
+                            name={userSettings.name}
+                            fortune={todayFortune}
+                            onClose={closeFortune}
+                        />
+                    )}
+                    
+                    <div style={{
+                        minHeight: '100vh',
+                        background: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        padding: '20px',
+                        textAlign: 'center'
+                    }}>
+                        <div>
+                            <h1 style={{ marginBottom: '20px', fontFamily: 'Baloo 2, cursive' }}>
+                                こんにちは、{userSettings.name}さん！
+                            </h1>
+                            <p>カレンダーアプリが正常に動作しています。</p>
+                            <button onClick={() => {
+                                localStorage.clear();
+                                window.location.reload();
+                            }} style={{
+                                marginTop: '20px',
+                                padding: '10px 20px',
+                                background: 'white',
+                                color: '#4A90E2',
+                                border: 'none',
+                                borderRadius: '10px',
+                                cursor: 'pointer'
+                            }}>
+                                設定をリセット
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

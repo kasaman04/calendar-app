@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar App Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const TestApp = () => {
+            const [step, setStep] = React.useState('loading');
+            
+            React.useEffect(() => {
+                setTimeout(() => setStep('settings'), 1000);
+            }, []);
+            
+            if (step === 'loading') {
+                return React.createElement('div', {
+                    style: { 
+                        padding: '50px', 
+                        textAlign: 'center',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        minHeight: '100vh'
+                    }
+                }, 'Loading...');
+            }
+            
+            if (step === 'settings') {
+                return React.createElement('div', {
+                    style: {
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        minHeight: '100vh',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }
+                }, React.createElement('div', {
+                    style: {
+                        background: 'white',
+                        padding: '30px',
+                        borderRadius: '20px',
+                        maxWidth: '400px',
+                        width: '100%'
+                    }
+                }, [
+                    React.createElement('h1', { 
+                        key: 'title',
+                        style: { textAlign: 'center', marginBottom: '20px' } 
+                    }, 'はじめまして！'),
+                    React.createElement('form', {
+                        key: 'form',
+                        onSubmit: (e) => {
+                            e.preventDefault();
+                            alert('送信されました！');
+                        }
+                    }, [
+                        React.createElement('input', {
+                            key: 'name',
+                            type: 'text',
+                            placeholder: 'お名前',
+                            style: {
+                                width: '100%',
+                                padding: '10px',
+                                marginBottom: '15px',
+                                border: '1px solid #ccc',
+                                borderRadius: '5px'
+                            },
+                            required: true
+                        }),
+                        React.createElement('input', {
+                            key: 'birthdate',
+                            type: 'date',
+                            style: {
+                                width: '100%',
+                                padding: '10px',
+                                marginBottom: '15px',
+                                border: '1px solid #ccc',
+                                borderRadius: '5px'
+                            },
+                            required: true
+                        }),
+                        React.createElement('select', {
+                            key: 'gender',
+                            style: {
+                                width: '100%',
+                                padding: '10px',
+                                marginBottom: '20px',
+                                border: '1px solid #ccc',
+                                borderRadius: '5px'
+                            },
+                            required: true
+                        }, [
+                            React.createElement('option', { key: 'empty', value: '' }, '性別を選択'),
+                            React.createElement('option', { key: 'male', value: 'male' }, '男性'),
+                            React.createElement('option', { key: 'female', value: 'female' }, '女性')
+                        ]),
+                        React.createElement('button', {
+                            key: 'submit',
+                            type: 'submit',
+                            style: {
+                                width: '100%',
+                                padding: '12px',
+                                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '16px',
+                                cursor: 'pointer'
+                            }
+                        }, '設定完了')
+                    ])
+                ]));
+            }
+            
+            return React.createElement('div', null, 'アプリが起動しました！');
+        };
+        
+        ReactDOM.render(React.createElement(TestApp), document.getElementById('root'));
+    </script>
+</body>
+</html>
