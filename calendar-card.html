@@ -340,7 +340,7 @@
             }
         };
 
-        const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth, userImage, isUploading, onPhotoClick }) => {
+        const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth, monthData, isUploading, onPhotoClick }) => {
             const days = generateCalendarDays(year, month);
             const [selectedDate, setSelectedDate] = useState(null);
             const [showTimeBar, setShowTimeBar] = useState(false);
@@ -787,43 +787,138 @@
 
             return (
                 <div className="w-full flex flex-col text-white font-comfortaa" style={{ backgroundColor: '#3182CE', maxWidth: '400px', margin: '0 auto', minHeight: '100vh' }}>
-                    {/* Top arch photo area - fixed size */}
-                    <div className="relative w-full flex items-end justify-center" style={{ height: '248px' }}>
-                        <div 
-                            className="arch-photo"
-                            style={{
-                                backgroundImage: `url(${userImage || getMonthImage(month)})`,
-                                width: '178px',
-                                height: '198px',
-                                cursor: 'pointer',
-                                position: 'relative'
-                            }}
-                            onClick={onPhotoClick}
-                        >
-                            {/* アップロード中のオーバーレイ */}
-                            {isUploading && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    background: 'rgba(0, 0, 0, 0.6)',
-                                    color: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '12px',
-                                    fontWeight: '500',
-                                    borderTopLeftRadius: '50%',
-                                    borderTopRightRadius: '50%'
-                                }}>
-                                    処理中...
+                    {/* Photo area - dynamic layout */}
+                    <div className="relative w-full flex items-end justify-center" style={{ height: '248px', paddingBottom: '20px' }}>
+                        {monthData.style === 'collage' ? (
+                            // スタイルA: 家族の思い出風3枚レイアウト
+                            <div style={{ width: '280px', height: '200px', display: 'flex', gap: '8px' }}>
+                                {/* 左側: 縦長1枚写真 */}
+                                <div 
+                                    style={{
+                                        width: '140px',
+                                        height: '200px',
+                                        backgroundImage: monthData.images[0] ? `url(${monthData.images[0].dataUrl})` : `url(${getMonthImage(month)})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                                        position: 'relative'
+                                    }}
+                                    onClick={() => onPhotoClick(0)}
+                                >
+                                    {!monthData.images[0] && !isUploading && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            background: 'rgba(0, 0, 0, 0.3)',
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '24px',
+                                            borderRadius: '12px'
+                                        }}>
+                                            📷
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                            
-                            {/* カメラアイコン（ユーザー画像がない場合のみ） */}
-                            {!userImage && !isUploading && (
+                                
+                                {/* 右側: 2枚の横写真を縦に並べた構成 */}
+                                <div style={{ width: '132px', height: '200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {[1, 2].map(position => (
+                                        <div 
+                                            key={position}
+                                            style={{
+                                                width: '100%',
+                                                height: '96px',
+                                                backgroundImage: monthData.images[position] ? `url(${monthData.images[position].dataUrl})` : `url(${getMonthImage(month)})`,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
+                                                borderRadius: '10px',
+                                                cursor: 'pointer',
+                                                border: '2px solid rgba(255, 255, 255, 0.3)',
+                                                position: 'relative'
+                                            }}
+                                            onClick={() => onPhotoClick(position)}
+                                        >
+                                            {!monthData.images[position] && !isUploading && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    background: 'rgba(0, 0, 0, 0.3)',
+                                                    color: 'white',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '18px',
+                                                    borderRadius: '10px'
+                                                }}>
+                                                    📷
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : monthData.style === 'single' ? (
+                            // スタイルB: シングル写真レイアウト
+                            <div 
+                                style={{
+                                    width: '280px',
+                                    height: '200px',
+                                    backgroundImage: monthData.images[0] ? `url(${monthData.images[0].dataUrl})` : `url(${getMonthImage(month)})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    borderRadius: '16px',
+                                    cursor: 'pointer',
+                                    border: '2px solid rgba(255, 255, 255, 0.3)',
+                                    position: 'relative'
+                                }}
+                                onClick={() => onPhotoClick(0)}
+                            >
+                                {!monthData.images[0] && !isUploading && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        background: 'rgba(0, 0, 0, 0.3)',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '32px',
+                                        borderRadius: '16px'
+                                    }}>
+                                        📷
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            // デフォルト: スタイル未選択時
+                            <div 
+                                style={{
+                                    width: '178px',
+                                    height: '198px',
+                                    backgroundImage: `url(${getMonthImage(month)})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    borderTopLeftRadius: '50%',
+                                    borderTopRightRadius: '50%',
+                                    cursor: 'pointer',
+                                    border: '2px solid rgba(255, 255, 255, 0.3)',
+                                    position: 'relative'
+                                }}
+                                onClick={() => onPhotoClick(0)}
+                            >
                                 <div style={{
                                     position: 'absolute',
                                     top: 0,
@@ -837,13 +932,29 @@
                                     justifyContent: 'center',
                                     fontSize: '24px',
                                     borderTopLeftRadius: '50%',
-                                    borderTopRightRadius: '50%',
-                                    transition: 'background 0.3s ease'
+                                    borderTopRightRadius: '50%'
                                 }}>
                                     📷
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+                        
+                        {/* アップロード中のオーバーレイ */}
+                        {isUploading && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '20px',
+                                right: '20px',
+                                background: 'rgba(0, 0, 0, 0.7)',
+                                color: 'white',
+                                padding: '8px 12px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                            }}>
+                                処理中...
+                            </div>
+                        )}
                     </div>
 
                     {/* Month title with navigation - larger size */}
@@ -1087,35 +1198,60 @@
         // 月別画像データの管理
         const useMonthImages = () => {
             const [images, setImages] = useState({});
+            const [styles, setStyles] = useState({}); // スタイル情報を保存
 
             React.useEffect(() => {
                 const savedImages = localStorage.getItem('monthImages');
+                const savedStyles = localStorage.getItem('monthStyles');
                 if (savedImages) {
                     setImages(JSON.parse(savedImages));
                 }
+                if (savedStyles) {
+                    setStyles(JSON.parse(savedStyles));
+                }
             }, []);
 
-            const addImage = (year, month, imageData) => {
+            const setMonthStyle = (year, month, style) => {
+                const key = `${year}-${month}`;
+                const newStyles = { ...styles, [key]: style };
+                setStyles(newStyles);
+                localStorage.setItem('monthStyles', JSON.stringify(newStyles));
+            };
+
+            const getMonthStyle = (year, month) => {
+                const key = `${year}-${month}`;
+                return styles[key] || null;
+            };
+
+            const addImage = (year, month, imageData, position = 0) => {
                 const key = `${year}-${month}`;
                 const newImages = { ...images };
                 if (!newImages[key]) {
-                    newImages[key] = [];
+                    newImages[key] = {};
                 }
-                newImages[key].push({
+                newImages[key][position] = {
                     id: Date.now() + Math.random(),
                     dataUrl: imageData,
                     uploadDate: new Date().toISOString()
-                });
+                };
                 setImages(newImages);
                 localStorage.setItem('monthImages', JSON.stringify(newImages));
             };
 
             const getImages = (year, month) => {
                 const key = `${year}-${month}`;
-                return images[key] || [];
+                return images[key] || {};
             };
 
-            return { addImage, getImages };
+            const clearMonthImages = (year, month) => {
+                const key = `${year}-${month}`;
+                const newImages = { ...images };
+                delete newImages[key];
+                setImages(newImages);
+                localStorage.setItem('monthImages', JSON.stringify(newImages));
+            };
+
+            return { addImage, getImages, setMonthStyle, getMonthStyle, clearMonthImages };
         };
 
         const CalendarApp = () => {
@@ -1123,7 +1259,9 @@
             const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
             const [currentMonthIndex, setCurrentMonthIndex] = useState(currentDate.getMonth());
             const [isUploading, setIsUploading] = useState(false);
-            const { addImage, getImages } = useMonthImages();
+            const [showStyleSelector, setShowStyleSelector] = useState(false);
+            const [currentUploadPosition, setCurrentUploadPosition] = useState(0);
+            const { addImage, getImages, setMonthStyle, getMonthStyle, clearMonthImages } = useMonthImages();
 
             // 画像選択処理
             const handleFileSelect = async (event) => {
@@ -1133,18 +1271,17 @@
                 setIsUploading(true);
 
                 try {
-                    for (const file of files) {
-                        if (!file.type.startsWith('image/')) continue;
+                    const file = files[0]; // 1枚ずつアップロード
+                    if (!file.type.startsWith('image/')) return;
 
-                        const dataUrl = await new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.onerror = reject;
-                            reader.readAsDataURL(file);
-                        });
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
 
-                        addImage(currentYear, currentMonthIndex, dataUrl);
-                    }
+                    addImage(currentYear, currentMonthIndex, dataUrl, currentUploadPosition);
                 } catch (error) {
                     console.error('画像の処理中にエラーが発生しました:', error);
                     alert('画像の処理中にエラーが発生しました');
@@ -1154,17 +1291,33 @@
                 }
             };
 
+            // スタイル選択処理
+            const handleStyleSelect = (style) => {
+                setMonthStyle(currentYear, currentMonthIndex, style);
+                clearMonthImages(currentYear, currentMonthIndex);
+                setShowStyleSelector(false);
+            };
+
             // 画像エリアクリック処理
-            const handlePhotoClick = () => {
+            const handlePhotoClick = (position = 0) => {
+                const currentStyle = getMonthStyle(currentYear, currentMonthIndex);
+                
+                if (!currentStyle) {
+                    setShowStyleSelector(true);
+                    return;
+                }
+
                 if (!isUploading) {
+                    setCurrentUploadPosition(position);
                     document.getElementById('photo-input').click();
                 }
             };
 
-            // 表示する画像を取得
-            const getUserImage = () => {
-                const userImages = getImages(currentYear, currentMonthIndex);
-                return userImages.length > 0 ? userImages[userImages.length - 1].dataUrl : null;
+            // 現在の月のデータを取得
+            const getCurrentMonthData = () => {
+                const style = getMonthStyle(currentYear, currentMonthIndex);
+                const images = getImages(currentYear, currentMonthIndex);
+                return { style, images };
             };
 
             const handlePrevMonth = () => {
@@ -1192,18 +1345,114 @@
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        multiple
                         onChange={handleFileSelect}
                         style={{ display: 'none' }}
                         disabled={isUploading}
                     />
+                    
+                    {/* スタイル選択モーダル */}
+                    {showStyleSelector && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.8)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10000
+                        }}>
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '20px',
+                                padding: '30px',
+                                maxWidth: '320px',
+                                width: '90%'
+                            }}>
+                                <h3 style={{
+                                    textAlign: 'center',
+                                    marginBottom: '20px',
+                                    color: '#333',
+                                    fontSize: '18px',
+                                    fontWeight: '600'
+                                }}>レイアウトを選択</h3>
+                                
+                                <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                                    <button
+                                        onClick={() => handleStyleSelect('collage')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '15px 10px',
+                                            border: '2px solid #e5e7eb',
+                                            borderRadius: '12px',
+                                            background: 'white',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.borderColor = '#3182CE'}
+                                        onMouseLeave={(e) => e.target.style.borderColor = '#e5e7eb'}
+                                    >
+                                        <div style={{ fontSize: '12px', fontWeight: '500', color: '#333', marginBottom: '8px' }}>
+                                            スタイルA
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: '#666', lineHeight: '1.3' }}>
+                                            家族の思い出風<br/>
+                                            (縦長1枚+横写真2枚)
+                                        </div>
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => handleStyleSelect('single')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '15px 10px',
+                                            border: '2px solid #e5e7eb',
+                                            borderRadius: '12px',
+                                            background: 'white',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.borderColor = '#3182CE'}
+                                        onMouseLeave={(e) => e.target.style.borderColor = '#e5e7eb'}
+                                    >
+                                        <div style={{ fontSize: '12px', fontWeight: '500', color: '#333', marginBottom: '8px' }}>
+                                            スタイルB
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: '#666', lineHeight: '1.3' }}>
+                                            シングル写真<br/>
+                                            (1枚フル表示)
+                                        </div>
+                                    </button>
+                                </div>
+                                
+                                <button
+                                    onClick={() => setShowStyleSelector(false)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: '#f3f4f6',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        color: '#666',
+                                        fontSize: '14px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    キャンセル
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    
                     <Calendar
                         year={currentYear}
                         month={currentMonthIndex}
                         monthName={MONTHS[currentMonthIndex]}
                         onPrevMonth={handlePrevMonth}
                         onNextMonth={handleNextMonth}
-                        userImage={getUserImage()}
+                        monthData={getCurrentMonthData()}
                         isUploading={isUploading}
                         onPhotoClick={handlePhotoClick}
                     />
