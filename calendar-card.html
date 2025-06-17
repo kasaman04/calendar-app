@@ -348,6 +348,8 @@
             const [showActivityMenu, setShowActivityMenu] = useState(false);
             const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
             const [showScheduleList, setShowScheduleList] = useState(false);
+            const [showPhotoArea, setShowPhotoArea] = useState(true);
+            const [showHideConfirm, setShowHideConfirm] = useState(false);
             
             // 日付クリック時の処理
             const handleDayClick = (day) => {
@@ -785,10 +787,25 @@
                 }, 300);
             };
 
+            // 写真エリア非表示確認処理
+            const handleHidePhotoArea = () => {
+                setShowHideConfirm(true);
+            };
+
+            const confirmHidePhotoArea = () => {
+                setShowPhotoArea(false);
+                setShowHideConfirm(false);
+            };
+
+            const cancelHidePhotoArea = () => {
+                setShowHideConfirm(false);
+            };
+
             return (
                 <div className="w-full flex flex-col text-white font-comfortaa" style={{ backgroundColor: '#3182CE', maxWidth: '400px', margin: '0 auto', minHeight: '100vh' }}>
                     {/* Photo area - single layout only */}
-                    <div className="relative w-full flex items-end justify-center" style={{ height: '248px', paddingBottom: '0px' }}>
+                    {showPhotoArea && (
+                        <div className="relative w-full flex items-end justify-center" style={{ height: '248px', paddingBottom: '0px' }}>
                         <div 
                             style={{
                                 width: '280px',
@@ -804,22 +821,51 @@
                             onClick={() => onPhotoClick(0)}
                         >
                             {(!monthData.images || !monthData.images[0]) && !isUploading && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    background: 'rgba(0, 0, 0, 0.3)',
-                                    color: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '32px',
-                                    borderRadius: '16px'
-                                }}>
-                                    📷
-                                </div>
+                                <>
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        background: 'rgba(0, 0, 0, 0.3)',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '32px',
+                                        borderRadius: '16px'
+                                    }}>
+                                        📷
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleHidePhotoArea();
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '8px',
+                                            right: '8px',
+                                            width: '24px',
+                                            height: '24px',
+                                            borderRadius: '50%',
+                                            background: 'rgba(255, 255, 255, 0.9)',
+                                            border: 'none',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            zIndex: 10,
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </>
                             )}
                         </div>
                         
@@ -839,7 +885,8 @@
                                 処理中...
                             </div>
                         )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* Month title with navigation - larger size */}
                     <div className="relative text-center mb-3 px-4" style={{ height: '15vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1104,6 +1151,79 @@
                             </div>
                         </div>
                     </div>
+
+                    {/* 写真エリア非表示確認ポップアップ */}
+                    {showHideConfirm && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10000
+                        }}>
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '20px',
+                                padding: '30px',
+                                maxWidth: '320px',
+                                width: '90%',
+                                textAlign: 'center'
+                            }}>
+                                <h3 style={{
+                                    margin: '0 0 20px 0',
+                                    color: '#333',
+                                    fontSize: '18px',
+                                    fontWeight: '600',
+                                    fontFamily: 'Comfortaa, sans-serif'
+                                }}>写真を設定しない</h3>
+                                
+                                <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
+                                    <button
+                                        onClick={confirmHidePhotoArea}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px 20px',
+                                            background: '#ccc',
+                                            border: 'none',
+                                            borderRadius: '25px',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            fontFamily: 'Comfortaa, sans-serif',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        yes
+                                    </button>
+                                    
+                                    <button
+                                        onClick={cancelHidePhotoArea}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px 20px',
+                                            background: '#ccc',
+                                            border: 'none',
+                                            borderRadius: '25px',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            fontFamily: 'Comfortaa, sans-serif',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        no
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
