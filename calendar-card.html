@@ -350,6 +350,8 @@
             const [showScheduleList, setShowScheduleList] = useState(false);
             const [showPhotoArea, setShowPhotoArea] = useState(true);
             const [showHideConfirm, setShowHideConfirm] = useState(false);
+            const [selectedActivity, setSelectedActivity] = useState(null);
+            const [activityMemo, setActivityMemo] = useState('');
             
             // 日付クリック時の処理
             const handleDayClick = (day) => {
@@ -367,6 +369,8 @@
                 setSelectedDate(null);
                 setShowActivityMenu(false);
                 setSelectedSlotIndex(null);
+                setSelectedActivity(null);
+                setActivityMemo('');
             };
 
             // タイムスロットクリック時の処理
@@ -384,21 +388,33 @@
                 } else {
                     // 予定が入っていない場合は選択メニューを表示
                     setSelectedSlotIndex(slotIndex);
+                    setSelectedActivity(null);
+                    setActivityMemo('');
                     setShowActivityMenu(true);
                 }
             };
 
-            // 活動選択時の処理
+            // 活動選択時の処理（第1段階：活動タイプ選択）
             const handleActivitySelect = (activity) => {
+                setSelectedActivity(activity);
+            };
+
+            // メモ確定時の処理（第2段階：メモ入力完了）
+            const handleMemoSubmit = () => {
                 const dateKey = selectedDate?.fullDate;
-                if (dateKey && selectedSlotIndex !== null) {
+                if (dateKey && selectedSlotIndex !== null && selectedActivity) {
                     setTimeSlots(prev => ({
                         ...prev,
-                        [`${dateKey}-${selectedSlotIndex}`]: activity
+                        [`${dateKey}-${selectedSlotIndex}`]: {
+                            type: selectedActivity,
+                            memo: activityMemo.trim()
+                        }
                     }));
                 }
                 setShowActivityMenu(false);
                 setSelectedSlotIndex(null);
+                setSelectedActivity(null);
+                setActivityMemo('');
             };
 
             // スロットの色を取得
@@ -411,7 +427,7 @@
                     outing: '#ffd3a5',  // 温かいピーチ
                     study: '#c7ceea'    // 柔らかいラベンダー
                 };
-                return activity ? colors[activity] : 'transparent';
+                return activity ? colors[activity.type || activity] : 'transparent';
             };
 
             // TimeBar24 コンポーネント（インライン実装）
@@ -489,11 +505,12 @@
                         transform: 'translate(-50%, -50%)',
                         background: 'white',
                         borderRadius: '12px',
-                        padding: '16px',
+                        padding: '20px',
                         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
                         border: '1px solid #e5e7eb',
                         zIndex: 1001,
-                        minWidth: '200px'
+                        minWidth: '280px',
+                        maxWidth: '320px'
                     }
                 }, [
                     React.createElement('div', {
@@ -501,50 +518,159 @@
                         style: {
                             fontSize: '16px',
                             fontWeight: '600',
-                            marginBottom: '12px',
+                            marginBottom: '16px',
                             textAlign: 'center',
                             color: '#333'
                         }
                     }, '活動を選択'),
+                    
                     ...activities.map(activity => 
-                        React.createElement('button', {
+                        React.createElement('div', {
                             key: activity.key,
-                            onClick: () => handleActivitySelect(activity.key),
                             style: {
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                width: '100%',
-                                padding: '10px 12px',
-                                border: 'none',
-                                borderRadius: '8px',
-                                background: 'transparent',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.2s ease',
-                                marginBottom: '4px'
-                            },
-                            onMouseEnter: (e) => e.target.style.backgroundColor = '#f3f4f6',
-                            onMouseLeave: (e) => e.target.style.backgroundColor = 'transparent'
+                                marginBottom: '16px'
+                            }
                         }, [
+                            React.createElement('button', {
+                                key: 'activity-btn',
+                                onClick: () => {
+                                    if (selectedActivity === activity.key) {
+                                        // 既に選択されている場合は解除
+                                        setSelectedActivity(null);
+                                        setActivityMemo('');
+                                    } else {
+                                        // 新しく選択
+                                        setSelectedActivity(activity.key);
+                                        setActivityMemo('');
+                                    }
+                                },
+                                style: {
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    width: '100%',
+                                    padding: '12px',
+                                    border: selectedActivity === activity.key ? `2px solid ${activity.color}` : '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    background: selectedActivity === activity.key ? `${activity.color}20` : 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    marginBottom: '8px'
+                                }
+                            }, [
+                                React.createElement('div', {
+                                    key: 'color',
+                                    style: {
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '4px',
+                                        backgroundColor: activity.color
+                                    }
+                                }),
+                                React.createElement('span', {
+                                    key: 'label',
+                                    style: {
+                                        fontSize: '16px',
+                                        fontWeight: '500',
+                                        color: '#333'
+                                    }
+                                }, activity.label)
+                            ]),
+                            
+                            // メモ入力欄
                             React.createElement('div', {
-                                key: 'color',
+                                key: 'memo-section',
                                 style: {
-                                    width: '16px',
-                                    height: '16px',
-                                    borderRadius: '4px',
-                                    backgroundColor: activity.color
+                                    position: 'relative'
                                 }
-                            }),
-                            React.createElement('span', {
-                                key: 'label',
-                                style: {
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    color: '#333'
-                                }
-                            }, activity.label)
+                            }, [
+                                React.createElement('span', {
+                                    key: 'memo-icon',
+                                    style: {
+                                        position: 'absolute',
+                                        left: '8px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        fontSize: '14px',
+                                        color: '#999'
+                                    }
+                                }, '✏️'),
+                                React.createElement('input', {
+                                    key: 'memo-input',
+                                    type: 'text',
+                                    placeholder: 'メモを入力',
+                                    value: selectedActivity === activity.key ? activityMemo : '',
+                                    onChange: (e) => {
+                                        setSelectedActivity(activity.key);
+                                        setActivityMemo(e.target.value);
+                                    },
+                                    onFocus: () => {
+                                        setSelectedActivity(activity.key);
+                                    },
+                                    style: {
+                                        width: '100%',
+                                        padding: '8px 8px 8px 30px',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        background: '#f8f9fa',
+                                        color: '#666',
+                                        boxSizing: 'border-box'
+                                    }
+                                })
+                            ])
                         ])
-                    )
+                    ),
+                    
+                    React.createElement('div', {
+                        key: 'buttons',
+                        style: {
+                            display: 'flex',
+                            gap: '8px',
+                            marginTop: '20px'
+                        }
+                    }, [
+                        React.createElement('button', {
+                            key: 'cancel',
+                            onClick: () => {
+                                setShowActivityMenu(false);
+                                setSelectedActivity(null);
+                                setActivityMemo('');
+                            },
+                            style: {
+                                flex: 1,
+                                padding: '10px 16px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                background: 'white',
+                                color: '#666',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }
+                        }, 'キャンセル'),
+                        React.createElement('button', {
+                            key: 'submit',
+                            onClick: () => {
+                                if (selectedActivity) {
+                                    handleMemoSubmit();
+                                }
+                            },
+                            disabled: !selectedActivity,
+                            style: {
+                                flex: 1,
+                                padding: '10px 16px',
+                                border: 'none',
+                                borderRadius: '6px',
+                                background: selectedActivity ? activities.find(a => a.key === selectedActivity)?.color || '#4A90E2' : '#ccc',
+                                color: 'white',
+                                cursor: selectedActivity ? 'pointer' : 'not-allowed',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                opacity: selectedActivity ? 1 : 0.6
+                            }
+                        }, '完了')
+                    ])
                 ]);
             };
 
