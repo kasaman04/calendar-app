@@ -8,10 +8,10 @@ interface HourlySlotCellProps {
 }
 
 const colorMap = {
-  work: "bg-blue-500",
+  work: "bg-gray-300",
   rest: "bg-gray-300", 
-  outing: "bg-emerald-400",
-  study: "bg-purple-400",
+  outing: "bg-gray-300",
+  study: "bg-gray-300",
   null: "bg-neutral-200"
 };
 
