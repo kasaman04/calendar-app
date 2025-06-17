@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memo Debug Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useCallback } = React;
+
+        const DebugMemoTest = () => {
+            const [activityMemos, setActivityMemos] = useState({});
+            const [selectedActivity, setSelectedActivity] = useState(null);
+
+            console.log('Render - activityMemos:', activityMemos);
+            console.log('Render - selectedActivity:', selectedActivity);
+
+            const handleMemoChange = useCallback((activityKey, newValue) => {
+                console.log('handleMemoChange called:', activityKey, newValue, 'Length:', newValue.length);
+                setActivityMemos(prev => {
+                    const updated = {
+                        ...prev,
+                        [activityKey]: newValue
+                    };
+                    console.log('Updated activityMemos:', updated);
+                    return updated;
+                });
+            }, []);
+
+            const activities = [
+                { key: 'work', label: '仕事', color: '#ff9a9e' },
+                { key: 'rest', label: '休み', color: '#a8e6cf' }
+            ];
+
+            return React.createElement('div', {
+                style: { padding: '20px' }
+            }, [
+                React.createElement('h1', { key: 'title' }, 'メモ入力テスト'),
+                
+                ...activities.map(activity => 
+                    React.createElement('div', {
+                        key: activity.key,
+                        style: { marginBottom: '20px', border: '1px solid #ccc', padding: '10px' }
+                    }, [
+                        React.createElement('h3', { key: 'name' }, activity.label),
+                        React.createElement('textarea', {
+                            key: `memo-${activity.key}`,
+                            placeholder: `${activity.label}のメモを入力`,
+                            value: activityMemos[activity.key] || '',
+                            onChange: (e) => {
+                                console.log('Direct onChange:', activity.key, e.target.value);
+                                handleMemoChange(activity.key, e.target.value);
+                            },
+                            style: {
+                                width: '100%',
+                                height: '60px',
+                                padding: '8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px'
+                            }
+                        }),
+                        React.createElement('div', {
+                            key: 'display',
+                            style: { marginTop: '10px', background: '#f0f0f0', padding: '8px' }
+                        }, `現在の値: "${activityMemos[activity.key] || ''}" (${(activityMemos[activity.key] || '').length}文字)`)
+                    ])
+                ),
+                
+                React.createElement('div', {
+                    key: 'debug',
+                    style: { marginTop: '20px', background: '#e0e0e0', padding: '10px' }
+                }, [
+                    React.createElement('h3', { key: 'debug-title' }, 'デバッグ情報'),
+                    React.createElement('pre', { 
+                        key: 'debug-content' 
+                    }, JSON.stringify(activityMemos, null, 2))
+                ])
+            ]);
+        };
+
+        ReactDOM.render(React.createElement(DebugMemoTest), document.getElementById('root'));
+    </script>
+</body>
+</html>

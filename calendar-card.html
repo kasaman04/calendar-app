@@ -351,7 +351,26 @@
             const [showPhotoArea, setShowPhotoArea] = useState(true);
             const [showHideConfirm, setShowHideConfirm] = useState(false);
             const [selectedActivity, setSelectedActivity] = useState(null);
-            const [activityMemo, setActivityMemo] = useState('');
+            const [activityMemos, setActivityMemos] = useState({});
+
+            // メモ変更ハンドラーを最適化（依存関係を削除）
+            const handleMemoChange = React.useCallback((activityKey, newValue) => {
+                console.log('handleMemoChange called:', activityKey, newValue, 'Length:', newValue.length);
+                setActivityMemos(prev => {
+                    const updated = {
+                        ...prev,
+                        [activityKey]: newValue
+                    };
+                    console.log('Updated activityMemos:', updated);
+                    return updated;
+                });
+                // selectedActivityの設定はonFocusに移動
+            }, []);
+
+            // デバッグ用のログ
+            React.useEffect(() => {
+                console.log('Current activityMemos state:', activityMemos);
+            }, [activityMemos]);
             
             // 日付クリック時の処理
             const handleDayClick = (day) => {
@@ -370,7 +389,7 @@
                 setShowActivityMenu(false);
                 setSelectedSlotIndex(null);
                 setSelectedActivity(null);
-                setActivityMemo('');
+                setActivityMemos({});
             };
 
             // タイムスロットクリック時の処理
@@ -389,7 +408,7 @@
                     // 予定が入っていない場合は選択メニューを表示
                     setSelectedSlotIndex(slotIndex);
                     setSelectedActivity(null);
-                    setActivityMemo('');
+                    setActivityMemos({});
                     setShowActivityMenu(true);
                 }
             };
@@ -407,14 +426,14 @@
                         ...prev,
                         [`${dateKey}-${selectedSlotIndex}`]: {
                             type: selectedActivity,
-                            memo: activityMemo.trim()
+                            memo: (activityMemos[selectedActivity] || '').trim()
                         }
                     }));
                 }
                 setShowActivityMenu(false);
                 setSelectedSlotIndex(null);
                 setSelectedActivity(null);
-                setActivityMemo('');
+                setActivityMemos({});
             };
 
             // スロットの色を取得
@@ -486,8 +505,8 @@
                 ])
             );
 
-            // 活動選択メニュー
-            const ActivityMenu = () => {
+            // 活動選択メニュー（完全に独立したコンポーネント）
+            const ActivityMenu = React.memo(() => {
                 if (!showActivityMenu) return null;
 
                 const activities = [
@@ -496,6 +515,10 @@
                     { key: 'outing', label: '外出', color: '#ffd3a5' },
                     { key: 'study', label: '勉強', color: '#c7ceea' }
                 ];
+
+                // ローカル状態を使用
+                const [localMemos, setLocalMemos] = React.useState({});
+                const [localSelectedActivity, setLocalSelectedActivity] = React.useState(null);
 
                 return React.createElement('div', {
                     style: {
@@ -509,8 +532,9 @@
                         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
                         border: '1px solid #e5e7eb',
                         zIndex: 1001,
-                        minWidth: '280px',
-                        maxWidth: '320px'
+                        minWidth: '320px',
+                        maxWidth: '400px',
+                        width: '90vw'
                     }
                 }, [
                     React.createElement('div', {
@@ -534,14 +558,10 @@
                             React.createElement('button', {
                                 key: 'activity-btn',
                                 onClick: () => {
-                                    if (selectedActivity === activity.key) {
-                                        // 既に選択されている場合は解除
-                                        setSelectedActivity(null);
-                                        setActivityMemo('');
+                                    if (localSelectedActivity === activity.key) {
+                                        setLocalSelectedActivity(null);
                                     } else {
-                                        // 新しく選択
-                                        setSelectedActivity(activity.key);
-                                        setActivityMemo('');
+                                        setLocalSelectedActivity(activity.key);
                                     }
                                 },
                                 style: {
@@ -550,9 +570,9 @@
                                     gap: '12px',
                                     width: '100%',
                                     padding: '12px',
-                                    border: selectedActivity === activity.key ? `2px solid ${activity.color}` : '1px solid #e5e7eb',
+                                    border: localSelectedActivity === activity.key ? `2px solid ${activity.color}` : '1px solid #e5e7eb',
                                     borderRadius: '8px',
-                                    background: selectedActivity === activity.key ? `${activity.color}20` : 'white',
+                                    background: localSelectedActivity === activity.key ? `${activity.color}20` : 'white',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s ease',
                                     marginBottom: '8px'
@@ -577,7 +597,7 @@
                                 }, activity.label)
                             ]),
                             
-                            // メモ入力欄
+                            // メモ入力欄（ローカル状態を使用）
                             React.createElement('div', {
                                 key: 'memo-section',
                                 style: {
@@ -589,26 +609,33 @@
                                     style: {
                                         position: 'absolute',
                                         left: '8px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
+                                        top: '12px',
                                         fontSize: '14px',
-                                        color: '#999'
+                                        color: '#999',
+                                        zIndex: 1
                                     }
                                 }, '✏️'),
-                                React.createElement('input', {
-                                    key: 'memo-input',
-                                    type: 'text',
-                                    placeholder: 'メモを入力',
-                                    value: selectedActivity === activity.key ? activityMemo : '',
+                                React.createElement('textarea', {
+                                    key: `memo-input-${activity.key}`,
+                                    placeholder: 'メモを入力（100文字まで）',
+                                    maxLength: 100,
+                                    rows: 2,
+                                    value: localMemos[activity.key] || '',
                                     onChange: (e) => {
-                                        setSelectedActivity(activity.key);
-                                        setActivityMemo(e.target.value);
+                                        const newValue = e.target.value;
+                                        console.log('ローカルonChange:', activity.key, newValue);
+                                        setLocalMemos(prev => ({
+                                            ...prev,
+                                            [activity.key]: newValue
+                                        }));
                                     },
                                     onFocus: () => {
-                                        setSelectedActivity(activity.key);
+                                        console.log('ローカルonFocus:', activity.key);
+                                        setLocalSelectedActivity(activity.key);
                                     },
                                     style: {
                                         width: '100%',
+                                        minWidth: '200px',
                                         padding: '8px 8px 8px 30px',
                                         border: '1px solid #e5e7eb',
                                         borderRadius: '6px',
@@ -616,9 +643,21 @@
                                         outline: 'none',
                                         background: '#f8f9fa',
                                         color: '#666',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        fontFamily: 'inherit',
+                                        resize: 'none',
+                                        minHeight: '50px'
                                     }
-                                })
+                                }),
+                                React.createElement('div', {
+                                    key: 'char-count',
+                                    style: {
+                                        fontSize: '11px',
+                                        color: '#999',
+                                        textAlign: 'right',
+                                        marginTop: '2px'
+                                    }
+                                }, `${(localMemos[activity.key] || '').length}/100`)
                             ])
                         ])
                     ),
@@ -636,7 +675,7 @@
                             onClick: () => {
                                 setShowActivityMenu(false);
                                 setSelectedActivity(null);
-                                setActivityMemo('');
+                                setActivityMemos({});
                             },
                             style: {
                                 flex: 1,
@@ -652,27 +691,41 @@
                         React.createElement('button', {
                             key: 'submit',
                             onClick: () => {
-                                if (selectedActivity) {
-                                    handleMemoSubmit();
+                                if (localSelectedActivity) {
+                                    // ローカル状態からグローバルに保存
+                                    const dateKey = selectedDate?.fullDate;
+                                    if (dateKey && selectedSlotIndex !== null) {
+                                        setTimeSlots(prev => ({
+                                            ...prev,
+                                            [`${dateKey}-${selectedSlotIndex}`]: {
+                                                type: localSelectedActivity,
+                                                memo: (localMemos[localSelectedActivity] || '').trim()
+                                            }
+                                        }));
+                                    }
+                                    setShowActivityMenu(false);
+                                    setSelectedSlotIndex(null);
+                                    setSelectedActivity(null);
+                                    setActivityMemos({});
                                 }
                             },
-                            disabled: !selectedActivity,
+                            disabled: !localSelectedActivity,
                             style: {
                                 flex: 1,
                                 padding: '10px 16px',
                                 border: 'none',
                                 borderRadius: '6px',
-                                background: selectedActivity ? activities.find(a => a.key === selectedActivity)?.color || '#4A90E2' : '#ccc',
+                                background: localSelectedActivity ? activities.find(a => a.key === localSelectedActivity)?.color || '#4A90E2' : '#ccc',
                                 color: 'white',
-                                cursor: selectedActivity ? 'pointer' : 'not-allowed',
+                                cursor: localSelectedActivity ? 'pointer' : 'not-allowed',
                                 fontSize: '14px',
                                 fontWeight: '500',
-                                opacity: selectedActivity ? 1 : 0.6
+                                opacity: localSelectedActivity ? 1 : 0.6
                             }
                         }, '完了')
                     ])
                 ]);
-            };
+            });
 
             // 予定が入っている日のデータを取得（現在表示中の月のみ）
             const getScheduledDays = () => {
@@ -709,8 +762,34 @@
             };
 
             // 個別タイムバー表示コンポーネント
-            const ScheduledDayBar = ({ date, slots }) => (
-                React.createElement('div', {
+            const ScheduledDayBar = ({ date, slots }) => {
+                console.log('ScheduledDayBar rendering:', date, slots); // デバッグ用
+                
+                // 色を取得する関数
+                const getSlotColor = (slot) => {
+                    const colors = {
+                        work: '#ff9a9e',    // 可愛いピンク
+                        rest: '#a8e6cf',    // 優しいミントグリーン
+                        outing: '#ffd3a5',  // 温かいピーチ
+                        study: '#c7ceea'    // 柔らかいラベンダー
+                    };
+                    
+                    if (!slot) return 'transparent';
+                    
+                    // 新しいデータ構造（オブジェクト）の場合
+                    if (typeof slot === 'object' && slot.type) {
+                        return colors[slot.type] || 'transparent';
+                    }
+                    
+                    // 古いデータ構造（文字列）の場合
+                    if (typeof slot === 'string') {
+                        return colors[slot] || 'transparent';
+                    }
+                    
+                    return 'transparent';
+                };
+
+                return React.createElement('div', {
                     style: {
                         marginBottom: '12px',
                         padding: '8px',
@@ -736,24 +815,19 @@
                             border: '1px solid rgba(255, 255, 255, 0.3)',
                             overflow: 'hidden'
                         }
-                    }, slots.map((activity, index) => {
-                        const colors = {
-                            work: '#ff9a9e',
-                            rest: '#a8e6cf',
-                            outing: '#ffd3a5',
-                            study: '#c7ceea'
-                        };
+                    }, slots.map((slot, index) => {
+                        console.log(`Slot ${index}:`, slot); // デバッグ用
                         return React.createElement('div', {
                             key: index,
                             style: {
                                 height: '100%',
-                                backgroundColor: activity ? colors[activity] : 'transparent',
+                                backgroundColor: getSlotColor(slot),
                                 borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
                             }
                         });
                     }))
-                ])
-            );
+                ]);
+            };
             
             // 今日の日付を取得
             const today = new Date();
@@ -1210,28 +1284,44 @@
                                                 overflow: 'hidden',
                                                 background: 'rgba(255, 255, 255, 0.1)'
                                             }}>
-                                                {dayData.slots.map((activity, slotIndex) => {
+                                                {dayData.slots.map((slot, slotIndex) => {
                                                     const colors = {
                                                         work: '#ff9a9e',
                                                         rest: '#a8e6cf',
                                                         outing: '#ffd3a5',
                                                         study: '#c7ceea'
                                                     };
+                                                    
+                                                    // 新しいデータ構造に対応
+                                                    let backgroundColor = 'transparent';
+                                                    let activityType = null;
+                                                    let memo = '';
+                                                    
+                                                    if (slot) {
+                                                        if (typeof slot === 'object' && slot.type) {
+                                                            activityType = slot.type;
+                                                            backgroundColor = colors[slot.type] || 'transparent';
+                                                            memo = slot.memo || '';
+                                                        } else if (typeof slot === 'string') {
+                                                            activityType = slot;
+                                                            backgroundColor = colors[slot] || 'transparent';
+                                                        }
+                                                    }
+                                                    
+                                                    const activityLabel = activityType === 'work' ? '仕事' 
+                                                                        : activityType === 'rest' ? '休み'
+                                                                        : activityType === 'outing' ? '外出'
+                                                                        : activityType === 'study' ? '勉強'
+                                                                        : '空き';
+                                                    
                                                     return (
                                                         <div
                                                             key={slotIndex}
                                                             style={{
                                                                 height: '100%',
-                                                                backgroundColor: activity ? colors[activity] : 'transparent'
+                                                                backgroundColor: backgroundColor
                                                             }}
-                                                            title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${
-                                                                activity 
-                                                                    ? activity === 'work' ? '仕事' 
-                                                                      : activity === 'rest' ? '休み'
-                                                                      : activity === 'outing' ? '外出'
-                                                                      : '勉強'
-                                                                    : '空き'
-                                                            }`}
+                                                            title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
                                                         />
                                                     );
                                                 })}
