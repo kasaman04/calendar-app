@@ -173,8 +173,6 @@
             padding: 24px;
             width: 320px;
             max-width: 90vw;
-            max-height: 80vh;
-            overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             transform: scale(0.8);
             transition: transform 0.3s ease;
@@ -184,43 +182,74 @@
             transform: scale(1);
         }
 
-        /* 24時間縦型スロット */
-        .time-slots-24h {
+        /* 24時間縦型スロット - 2列レイアウト */
+        .time-slots {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 2px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
             margin-top: 16px;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
-        .time-slot-24h {
+        .time-slot {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
+            border-radius: 12px;
+            padding: 8px 10px;
             color: white;
             font-family: 'Comfortaa', sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
             position: relative;
             overflow: hidden;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            min-height: 32px;
+            justify-content: center;
+            min-height: 35px;
+            text-align: center;
         }
 
-        .time-slot-24h:hover {
-            transform: translateX(2px);
-            box-shadow: 0 3px 8px rgba(102, 126, 234, 0.4);
+        .time-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
-        .time-slot-24h:active {
-            transform: translateX(0);
+        .time-slot:active {
+            transform: translateY(0);
+        }
+
+        .time-slot::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .time-slot:hover::before {
+            left: 100%;
+        }
+
+        /* 24時間の色分け */
+        .time-slot-0, .time-slot-1, .time-slot-2, .time-slot-3, .time-slot-4, .time-slot-5 { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+        }
+        .time-slot-6, .time-slot-7, .time-slot-8, .time-slot-9, .time-slot-10, .time-slot-11 { 
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+        }
+        .time-slot-12, .time-slot-13, .time-slot-14, .time-slot-15, .time-slot-16, .time-slot-17 { 
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+        }
+        .time-slot-18, .time-slot-19, .time-slot-20, .time-slot-21, .time-slot-22, .time-slot-23 { 
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); 
         }
 
         .close-btn {
@@ -356,6 +385,7 @@
                     console.log('Updated activityMemos:', updated);
                     return updated;
                 });
+                // selectedActivityの設定はonFocusに移動
             }, []);
 
             // デバッグ用のログ
@@ -404,6 +434,29 @@
                 }
             };
 
+            // 活動選択時の処理（第1段階：活動タイプ選択）
+            const handleActivitySelect = (activity) => {
+                setSelectedActivity(activity);
+            };
+
+            // メモ確定時の処理（第2段階：メモ入力完了）
+            const handleMemoSubmit = () => {
+                const dateKey = selectedDate?.fullDate;
+                if (dateKey && selectedSlotIndex !== null && selectedActivity) {
+                    setTimeSlots(prev => ({
+                        ...prev,
+                        [`${dateKey}-${selectedSlotIndex}`]: {
+                            type: selectedActivity,
+                            memo: (activityMemos[selectedActivity] || '').trim()
+                        }
+                    }));
+                }
+                setShowActivityMenu(false);
+                setSelectedSlotIndex(null);
+                setSelectedActivity(null);
+                setActivityMemos({});
+            };
+
             // スロットの色を取得（24時間版）
             const getSlotColor = (slotIndex) => {
                 const dateKey = selectedDate?.fullDate;
@@ -417,54 +470,46 @@
                 return activity ? colors[activity.type || activity] : 'transparent';
             };
 
-            // 24時間縦型タイムバー コンポーネント
-            const TimeBar24Vertical = () => (
+            // TimeBar24 コンポーネント（24時間版に変更）
+            const TimeBar24 = () => (
                 React.createElement('div', { 
                     className: 'relative w-full',
                     style: { marginBottom: '8px' }
                 }, [
-                    React.createElement('div', {
-                        key: 'title',
-                        style: {
-                            fontSize: '12px',
-                            color: '#666',
-                            textAlign: 'center',
-                            marginBottom: '8px'
-                        }
-                    }, '24時間タイムバー（縦型）'),
+                    // 24時間分割のタイムスロット
                     React.createElement('div', {
                         key: 'slots',
-                        className: 'time-slots-24h'
+                        className: 'time-slots'
                     }, Array.from({ length: 24 }, (_, hour) => 
-                        React.createElement('div', {
+                        React.createElement('button', {
                             key: hour,
-                            className: 'time-slot-24h',
+                            className: `time-slot time-slot-${hour}`,
                             onClick: () => handleSlotClick(hour),
                             style: {
-                                backgroundColor: getSlotColor(hour) || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                background: getSlotColor(hour) ? getSlotColor(hour) : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                backgroundColor: getSlotColor(hour) || 'transparent'
                             }
                         }, [
                             React.createElement('div', {
-                                key: 'time-label',
+                                key: 'hour',
                                 style: {
                                     fontWeight: '600',
-                                    fontSize: '12px'
+                                    fontSize: '11px',
+                                    marginBottom: '2px'
                                 }
                             }, `${hour.toString().padStart(2, '0')}:00`),
                             React.createElement('div', {
-                                key: 'time-range',
+                                key: 'range',
                                 style: {
-                                    fontSize: '10px',
+                                    fontSize: '8px',
                                     opacity: 0.8
                                 }
-                            }, `${hour.toString().padStart(2, '0')}:00-${((hour + 1) % 24).toString().padStart(2, '0')}:00`)
+                            }, `${hour}〜${(hour + 1) % 24}時`)
                         ])
                     ))
                 ])
             );
 
-            // 活動選択メニュー（24時間版用に調整）
+            // 活動選択メニュー（完全に独立したコンポーネント）
             const ActivityMenu = React.memo(() => {
                 if (!showActivityMenu) return null;
 
@@ -491,8 +536,8 @@
                         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
                         border: '1px solid #e5e7eb',
                         zIndex: 1001,
-                        minWidth: '280px',
-                        maxWidth: '350px',
+                        minWidth: '320px',
+                        maxWidth: '400px',
                         width: '90vw'
                     }
                 }, [
@@ -582,12 +627,14 @@
                                     value: localMemos[activity.key] || '',
                                     onChange: (e) => {
                                         const newValue = e.target.value;
+                                        console.log('ローカルonChange:', activity.key, newValue);
                                         setLocalMemos(prev => ({
                                             ...prev,
                                             [activity.key]: newValue
                                         }));
                                     },
                                     onFocus: () => {
+                                        console.log('ローカルonFocus:', activity.key);
                                         setLocalSelectedActivity(activity.key);
                                     },
                                     style: {
@@ -684,7 +731,7 @@
                 ]);
             });
 
-            // 予定が入っている日のデータを取得（24時間版）
+            // 予定が入っている日のデータを取得（現在表示中の月のみ）
             const getScheduledDays = () => {
                 const daysWithSchedules = {};
                 const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -704,11 +751,17 @@
                     }
                 });
 
+                console.log('Current month filter:', currentYearMonth); // デバッグ用
+                console.log('timeSlots:', timeSlots); // デバッグ用
+                console.log('daysWithSchedules (filtered):', daysWithSchedules); // デバッグ用
+
                 // 日付順にソート（日付文字列で比較）
                 const result = Object.entries(daysWithSchedules)
                     .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                     .map(([date, slots]) => ({ date, slots }));
                 
+                console.log('getScheduledDays result (filtered):', result); // デバッグ用
+                console.log('result length:', result.length); // デバッグ用
                 return result;
             };
 
@@ -727,6 +780,119 @@
                 } catch (error) {
                     console.log('音効果の再生に失敗しました:', error);
                 }
+            };
+
+            // タッチイベントとマウスイベントを使用してスワイプ判定を実装
+            const handleTouchStart = (e, dayData) => {
+                const touch = e.touches[0];
+                const startX = touch.clientX;
+                const startY = touch.clientY;
+                const element = e.currentTarget;
+                let isSwipeActive = false;
+
+                // トランジションを無効にして滑らかな追従を実現
+                element.style.transition = 'none';
+
+                const handleTouchMove = (e) => {
+                    const touch = e.touches[0];
+                    const endX = touch.clientX;
+                    const endY = touch.clientY;
+                    const distanceX = endX - startX;
+                    const distanceY = endY - startY;
+
+                    // 水平方向のスワイプかどうかを判定
+                    if (Math.abs(distanceX) > Math.abs(distanceY) && distanceX > 10) {
+                        isSwipeActive = true;
+                        e.preventDefault(); // スクロールを防止
+                        
+                        // バーを指に付いてくるように移動（最大100pxまで）
+                        const moveDistance = Math.min(distanceX, 100);
+                        element.style.transform = `translateX(${moveDistance}px)`;
+                        
+                        // 50px以上で削除準備（背景色を赤くする）
+                        if (distanceX > 50) {
+                            element.style.background = 'rgba(239, 68, 68, 0.6)';
+                        } else {
+                            element.style.background = 'rgba(255, 255, 255, 0.25)';
+                        }
+                    }
+                };
+
+                const handleTouchEnd = (e) => {
+                    const touch = e.changedTouches[0];
+                    const endX = touch.clientX;
+                    const distanceX = endX - startX;
+
+                    if (isSwipeActive && distanceX > 50) {
+                        // 削除実行
+                        handleSwipeDelete(dayData, element);
+                    } else {
+                        // 元の位置に戻す
+                        element.style.transition = 'transform 0.3s ease-out, background 0.3s ease-out';
+                        element.style.transform = 'translateX(0)';
+                        element.style.background = 'rgba(255, 255, 255, 0.15)';
+                    }
+
+                    document.removeEventListener('touchmove', handleTouchMove);
+                    document.removeEventListener('touchend', handleTouchEnd);
+                };
+
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                document.addEventListener('touchend', handleTouchEnd);
+            };
+
+            const handleMouseDown = (e, dayData) => {
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const element = e.currentTarget;
+                let isSwipeActive = false;
+
+                // トランジションを無効にして滑らかな追従を実現
+                element.style.transition = 'none';
+
+                const handleMouseMove = (e) => {
+                    const endX = e.clientX;
+                    const endY = e.clientY;
+                    const distanceX = endX - startX;
+                    const distanceY = endY - startY;
+
+                    // 水平方向のスワイプかどうかを判定
+                    if (Math.abs(distanceX) > Math.abs(distanceY) && distanceX > 10) {
+                        isSwipeActive = true;
+                        
+                        // バーを指に付いてくるように移動（最大100pxまで）
+                        const moveDistance = Math.min(distanceX, 100);
+                        element.style.transform = `translateX(${moveDistance}px)`;
+                        
+                        // 50px以上で削除準備（背景色を赤くする）
+                        if (distanceX > 50) {
+                            element.style.background = 'rgba(239, 68, 68, 0.6)';
+                        } else {
+                            element.style.background = 'rgba(255, 255, 255, 0.25)';
+                        }
+                    }
+                };
+
+                const handleMouseUp = (e) => {
+                    const endX = e.clientX;
+                    const distanceX = endX - startX;
+
+                    if (isSwipeActive && distanceX > 50) {
+                        // 削除実行
+                        handleSwipeDelete(dayData, element);
+                    } else {
+                        // 元の位置に戻す
+                        element.style.transition = 'transform 0.3s ease-out, background 0.3s ease-out';
+                        element.style.transform = 'translateX(0)';
+                        element.style.background = 'rgba(255, 255, 255, 0.15)';
+                    }
+
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
             };
 
             // スワイプ削除のための関数
@@ -751,6 +917,7 @@
                                 delete newSlots[key];
                             }
                         });
+                        console.log('更新されたスロット:', newSlots);
                         return newSlots;
                     });
                 }, 300);
@@ -941,6 +1108,7 @@
                         </div>
                     </div>
 
+
                     {/* 予定タイムライン表示 - 常に表示 */}
                     <div style={{ 
                         padding: '16px',
@@ -952,6 +1120,8 @@
                     }}>
                         <div
                             onClick={() => {
+                                const currentMonthSchedules = getScheduledDays();
+                                console.log('予定一覧クリック', currentMonthSchedules);
                                 setShowScheduleList(!showScheduleList);
                             }}
                             style={{
@@ -970,9 +1140,27 @@
                             予定一覧 24時間版 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
                         </div>
                         
+                        <div style={{
+                            fontSize: '10px',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            marginBottom: '8px'
+                        }}>
+                            デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
+                        </div>
+                        
                         {showScheduleList && Object.keys(timeSlots).length > 0 && (
-                            <div style={{ paddingRight: '4px' }}>
+                            <div style={{
+                                paddingRight: '4px'
+                            }}>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    marginBottom: '8px'
+                                }}>
+                                    予定詳細: {getScheduledDays().length}日分の予定があります
+                                </div>
                                 {getScheduledDays().map((dayData, index) => {
+                                    console.log('Rendering dayData:', dayData, 'index:', index); // デバッグ用
                                     const date = new Date(dayData.date);
                                     const monthDay = `${date.getMonth() + 1}月${date.getDate()}日`;
                                     
@@ -985,11 +1173,24 @@
                                                 background: 'rgba(255, 255, 255, 0.15)',
                                                 borderRadius: '8px',
                                                 border: '1px solid rgba(255, 255, 255, 0.2)',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.3s ease',
-                                                userSelect: 'none'
+                                                cursor: 'pointer', // マウスを持ってきた時にポインターカーソルを表示
+                                                transition: 'all 0.3s ease', // ホバー効果のためのトランジション
+                                                userSelect: 'none' // テキスト選択を防止
+                                            }}
+                                            onTouchStart={(e) => handleTouchStart(e, dayData)}
+                                            onMouseDown={(e) => handleMouseDown(e, dayData)}
+                                            onMouseEnter={(e) => {
+                                                // ホバー時の視覚効果
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                                                e.currentTarget.style.transform = 'scale(1.02)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                // ホバー終了時に元に戻す
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                                e.currentTarget.style.transform = 'scale(1)';
                                             }}
                                             onClick={(e) => {
+                                                // シングルクリックで編集画面を表示
                                                 const date = new Date(dayData.date);
                                                 const dateObj = {
                                                     date: date.getDate(),
@@ -1010,11 +1211,71 @@
                                                 {monthDay}
                                             </div>
                                             <div style={{
-                                                fontSize: '10px',
-                                                color: 'rgba(255, 255, 255, 0.7)',
-                                                marginBottom: '4px'
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(24, 1fr)',
+                                                gap: '1px',
+                                                height: '12px',
+                                                borderRadius: '6px',
+                                                border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                overflow: 'hidden',
+                                                background: 'rgba(255, 255, 255, 0.1)'
                                             }}>
-                                                24時間表示: {dayData.slots.filter(slot => slot !== null).length}時間の予定
+                                                {dayData.slots.map((slot, slotIndex) => {
+                                                    const colors = {
+                                                        work: '#ff9a9e',
+                                                        rest: '#a8e6cf',
+                                                        outing: '#ffd3a5',
+                                                        study: '#c7ceea'
+                                                    };
+                                                    
+                                                    // 新しいデータ構造に対応
+                                                    let backgroundColor = 'transparent';
+                                                    let activityType = null;
+                                                    let memo = '';
+                                                    
+                                                    if (slot) {
+                                                        if (typeof slot === 'object' && slot.type) {
+                                                            activityType = slot.type;
+                                                            backgroundColor = colors[slot.type] || 'transparent';
+                                                            memo = slot.memo || '';
+                                                        } else if (typeof slot === 'string') {
+                                                            activityType = slot;
+                                                            backgroundColor = colors[slot] || 'transparent';
+                                                        }
+                                                    }
+                                                    
+                                                    const activityLabel = activityType === 'work' ? '仕事' 
+                                                                        : activityType === 'rest' ? '休み'
+                                                                        : activityType === 'outing' ? '外出'
+                                                                        : activityType === 'study' ? '勉強'
+                                                                        : '空き';
+                                                    
+                                                    return (
+                                                        <div
+                                                            key={slotIndex}
+                                                            style={{
+                                                                height: '100%',
+                                                                backgroundColor: backgroundColor
+                                                            }}
+                                                            title={`${slotIndex}:00-${(slotIndex + 1) % 24}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                            
+                                            {/* 時間ラベル */}
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(12, 1fr)',
+                                                gap: '1px',
+                                                marginTop: '4px',
+                                                fontSize: '6px',
+                                                color: 'rgba(255, 255, 255, 0.6)',
+                                                textAlign: 'center'
+                                            }}>
+                                                {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22].map((hour, idx) => (
+                                                    <div key={idx}>{hour}</div>
+                                                ))}
                                             </div>
                                         </div>
                                     );
@@ -1035,9 +1296,116 @@
                                 時間を選択してください
                             </div>
 
-                            {/* 24時間縦型タイムバー */}
+                            {/* 24時間タイムバー */}
                             <div style={{ marginBottom: '20px', position: 'relative' }}>
-                                <TimeBar24Vertical />
+                                <TimeBar24 />
+                                
+                                {/* 予定詳細リスト */}
+                                {selectedDate && (() => {
+                                    const dateKey = selectedDate.fullDate;
+                                    const scheduleItems = [];
+                                    
+                                    // 現在の日付の予定を取得
+                                    for (let i = 0; i < 24; i++) {
+                                        const slotKey = `${dateKey}-${i}`;
+                                        const activity = timeSlots[slotKey];
+                                        if (activity) {
+                                            const startHour = i;
+                                            const endHour = (i + 1) % 24;
+                                            const colors = {
+                                                work: '#ff9a9e',
+                                                rest: '#a8e6cf',
+                                                outing: '#ffd3a5',
+                                                study: '#c7ceea'
+                                            };
+                                            const labels = {
+                                                work: '仕事',
+                                                rest: '休み',
+                                                outing: '外出',
+                                                study: '勉強'
+                                            };
+                                            
+                                            let activityType, memo;
+                                            if (typeof activity === 'object') {
+                                                activityType = activity.type;
+                                                memo = activity.memo || '';
+                                            } else {
+                                                activityType = activity;
+                                                memo = '';
+                                            }
+                                            
+                                            scheduleItems.push({
+                                                time: `${startHour.toString().padStart(2, '0')}:00〜${endHour.toString().padStart(2, '0')}:00`,
+                                                activity: labels[activityType] || activityType,
+                                                memo: memo,
+                                                color: colors[activityType] || '#ccc'
+                                            });
+                                        }
+                                    }
+                                    
+                                    // 予定がある場合はリストを表示
+                                    if (scheduleItems.length > 0) {
+                                        return React.createElement('div', {
+                                            style: {
+                                                marginTop: '16px',
+                                                marginBottom: '16px',
+                                                padding: '12px',
+                                                background: '#f8f9fa',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e5e7eb'
+                                            }
+                                        }, [
+                                            React.createElement('div', {
+                                                key: 'title',
+                                                style: {
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    color: '#333',
+                                                    marginBottom: '8px'
+                                                }
+                                            }, '予定詳細'),
+                                            ...scheduleItems.map((item, index) => 
+                                                React.createElement('div', {
+                                                    key: index,
+                                                    style: {
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        marginBottom: index < scheduleItems.length - 1 ? '6px' : '0',
+                                                        fontSize: '13px'
+                                                    }
+                                                }, [
+                                                    React.createElement('div', {
+                                                        key: 'color-indicator',
+                                                        style: {
+                                                            width: '12px',
+                                                            height: '12px',
+                                                            borderRadius: '2px',
+                                                            backgroundColor: item.color,
+                                                            flexShrink: 0
+                                                        }
+                                                    }),
+                                                    React.createElement('span', {
+                                                        key: 'time',
+                                                        style: {
+                                                            fontWeight: '500',
+                                                            color: '#333',
+                                                            minWidth: '80px'
+                                                        }
+                                                    }, item.time),
+                                                    React.createElement('span', {
+                                                        key: 'activity',
+                                                        style: {
+                                                            color: '#666'
+                                                        }
+                                                    }, item.memo ? `${item.activity} (${item.memo})` : item.activity)
+                                                ])
+                                            )
+                                        ]);
+                                    }
+                                    return null;
+                                })()}
+                                
                                 <ActivityMenu />
                             </div>
                         </div>
@@ -1232,6 +1600,7 @@
                         style={{ display: 'none' }}
                         disabled={isUploading}
                     />
+                    
                     
                     <Calendar
                         year={currentYear}
