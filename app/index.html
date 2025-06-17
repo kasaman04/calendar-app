@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calendar App</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'baloo': ['Baloo 2', 'cursive'],
+                        'comfortaa': ['Comfortaa', 'sans-serif'],
+                        'varela': ['Varela Round', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- 花火エフェクト用キャンバス -->
+    <canvas id="fireworks-canvas"></canvas>
+    
+    <!-- スクリプトファイルの読み込み -->
+    <script src="../assets/effects/fireworks.js"></script>
+    <script src="js/data/userData.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/components/UserSettings.js"></script>
+    <script src="js/components/CalendarCard.js"></script>
+    <script src="js/components/App.js"></script>
+    
+    <script type="text/babel">
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

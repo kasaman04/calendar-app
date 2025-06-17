@@ -23,7 +23,9 @@
       "Bash(python:*)",
       "Bash(npx tsc:*)",
       "Bash(hostname:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
