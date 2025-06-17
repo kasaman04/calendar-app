@@ -1363,6 +1363,113 @@
                             {/* 極細タイムバー */}
                             <div style={{ marginBottom: '20px', position: 'relative' }}>
                                 <TimeBar24 />
+                                
+                                {/* 予定詳細リスト */}
+                                {selectedDate && (() => {
+                                    const dateKey = selectedDate.fullDate;
+                                    const scheduleItems = [];
+                                    
+                                    // 現在の日付の予定を取得
+                                    for (let i = 0; i < 6; i++) {
+                                        const slotKey = `${dateKey}-${i}`;
+                                        const activity = timeSlots[slotKey];
+                                        if (activity) {
+                                            const startHour = i * 4;
+                                            const endHour = (i + 1) * 4;
+                                            const colors = {
+                                                work: '#ff9a9e',
+                                                rest: '#a8e6cf',
+                                                outing: '#ffd3a5',
+                                                study: '#c7ceea'
+                                            };
+                                            const labels = {
+                                                work: '仕事',
+                                                rest: '休み',
+                                                outing: '外出',
+                                                study: '勉強'
+                                            };
+                                            
+                                            let activityType, memo;
+                                            if (typeof activity === 'object') {
+                                                activityType = activity.type;
+                                                memo = activity.memo || '';
+                                            } else {
+                                                activityType = activity;
+                                                memo = '';
+                                            }
+                                            
+                                            scheduleItems.push({
+                                                time: `${startHour}〜${endHour}時`,
+                                                activity: labels[activityType] || activityType,
+                                                memo: memo,
+                                                color: colors[activityType] || '#ccc'
+                                            });
+                                        }
+                                    }
+                                    
+                                    // 予定がある場合はリストを表示
+                                    if (scheduleItems.length > 0) {
+                                        return React.createElement('div', {
+                                            style: {
+                                                marginTop: '16px',
+                                                marginBottom: '16px',
+                                                padding: '12px',
+                                                background: '#f8f9fa',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e5e7eb'
+                                            }
+                                        }, [
+                                            React.createElement('div', {
+                                                key: 'title',
+                                                style: {
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    color: '#333',
+                                                    marginBottom: '8px'
+                                                }
+                                            }, '予定詳細'),
+                                            ...scheduleItems.map((item, index) => 
+                                                React.createElement('div', {
+                                                    key: index,
+                                                    style: {
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        marginBottom: index < scheduleItems.length - 1 ? '6px' : '0',
+                                                        fontSize: '13px'
+                                                    }
+                                                }, [
+                                                    React.createElement('div', {
+                                                        key: 'color-indicator',
+                                                        style: {
+                                                            width: '12px',
+                                                            height: '12px',
+                                                            borderRadius: '2px',
+                                                            backgroundColor: item.color,
+                                                            flexShrink: 0
+                                                        }
+                                                    }),
+                                                    React.createElement('span', {
+                                                        key: 'time',
+                                                        style: {
+                                                            fontWeight: '500',
+                                                            color: '#333',
+                                                            minWidth: '60px'
+                                                        }
+                                                    }, item.time),
+                                                    React.createElement('span', {
+                                                        key: 'activity',
+                                                        style: {
+                                                            color: '#666'
+                                                        }
+                                                    }, item.memo ? `${item.activity} (${item.memo})` : item.activity)
+                                                ])
+                                            )
+                                        ]);
+                                    }
+                                    return null;
+                                })()}
+                                
                                 <ActivityMenu />
                             </div>
                         </div>
