@@ -1,0 +1,5 @@
+172.24.224.1 - - [17/Jun/2025 14:43:48] "GET /camera-calendar.html HTTP/1.1" 200 -
+172.24.224.1 - - [17/Jun/2025 14:43:50] code 404, message File not found
+172.24.224.1 - - [17/Jun/2025 14:43:50] "GET /favicon.ico HTTP/1.1" 404 -
+172.24.224.1 - - [17/Jun/2025 14:48:33] "GET /camera-calendar.html HTTP/1.1" 304 -
+172.24.224.1 - - [17/Jun/2025 14:50:16] "GET /camera-calendar.html HTTP/1.1" 304 -

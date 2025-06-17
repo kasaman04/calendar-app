@@ -340,7 +340,7 @@
             }
         };
 
-        const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth }) => {
+        const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth, userImage, isUploading, onPhotoClick }) => {
             const days = generateCalendarDays(year, month);
             const [selectedDate, setSelectedDate] = useState(null);
             const [showTimeBar, setShowTimeBar] = useState(false);
@@ -792,11 +792,58 @@
                         <div 
                             className="arch-photo"
                             style={{
-                                backgroundImage: `url(${getMonthImage(month)})`,
+                                backgroundImage: `url(${userImage || getMonthImage(month)})`,
                                 width: '178px',
-                                height: '198px'
+                                height: '198px',
+                                cursor: 'pointer',
+                                position: 'relative'
                             }}
-                        />
+                            onClick={onPhotoClick}
+                        >
+                            {/* アップロード中のオーバーレイ */}
+                            {isUploading && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.6)',
+                                    color: 'white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    borderTopLeftRadius: '50%',
+                                    borderTopRightRadius: '50%'
+                                }}>
+                                    処理中...
+                                </div>
+                            )}
+                            
+                            {/* カメラアイコン（ユーザー画像がない場合のみ） */}
+                            {!userImage && !isUploading && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.3)',
+                                    color: 'white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '24px',
+                                    borderTopLeftRadius: '50%',
+                                    borderTopRightRadius: '50%',
+                                    transition: 'background 0.3s ease'
+                                }}>
+                                    📷
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Month title with navigation - larger size */}
@@ -1037,10 +1084,88 @@
             );
         };
 
+        // 月別画像データの管理
+        const useMonthImages = () => {
+            const [images, setImages] = useState({});
+
+            React.useEffect(() => {
+                const savedImages = localStorage.getItem('monthImages');
+                if (savedImages) {
+                    setImages(JSON.parse(savedImages));
+                }
+            }, []);
+
+            const addImage = (year, month, imageData) => {
+                const key = `${year}-${month}`;
+                const newImages = { ...images };
+                if (!newImages[key]) {
+                    newImages[key] = [];
+                }
+                newImages[key].push({
+                    id: Date.now() + Math.random(),
+                    dataUrl: imageData,
+                    uploadDate: new Date().toISOString()
+                });
+                setImages(newImages);
+                localStorage.setItem('monthImages', JSON.stringify(newImages));
+            };
+
+            const getImages = (year, month) => {
+                const key = `${year}-${month}`;
+                return images[key] || [];
+            };
+
+            return { addImage, getImages };
+        };
+
         const CalendarApp = () => {
             const currentDate = new Date();
             const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
             const [currentMonthIndex, setCurrentMonthIndex] = useState(currentDate.getMonth());
+            const [isUploading, setIsUploading] = useState(false);
+            const { addImage, getImages } = useMonthImages();
+
+            // 画像選択処理
+            const handleFileSelect = async (event) => {
+                const files = Array.from(event.target.files || []);
+                if (files.length === 0) return;
+
+                setIsUploading(true);
+
+                try {
+                    for (const file of files) {
+                        if (!file.type.startsWith('image/')) continue;
+
+                        const dataUrl = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+
+                        addImage(currentYear, currentMonthIndex, dataUrl);
+                    }
+                } catch (error) {
+                    console.error('画像の処理中にエラーが発生しました:', error);
+                    alert('画像の処理中にエラーが発生しました');
+                } finally {
+                    setIsUploading(false);
+                    event.target.value = '';
+                }
+            };
+
+            // 画像エリアクリック処理
+            const handlePhotoClick = () => {
+                if (!isUploading) {
+                    document.getElementById('photo-input').click();
+                }
+            };
+
+            // 表示する画像を取得
+            const getUserImage = () => {
+                const userImages = getImages(currentYear, currentMonthIndex);
+                return userImages.length > 0 ? userImages[userImages.length - 1].dataUrl : null;
+            };
 
             const handlePrevMonth = () => {
                 if (currentMonthIndex === 0) {
@@ -1061,13 +1186,28 @@
             };
 
             return (
-                <Calendar
-                    year={currentYear}
-                    month={currentMonthIndex}
-                    monthName={MONTHS[currentMonthIndex]}
-                    onPrevMonth={handlePrevMonth}
-                    onNextMonth={handleNextMonth}
-                />
+                <>
+                    <input
+                        id="photo-input"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        multiple
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                        disabled={isUploading}
+                    />
+                    <Calendar
+                        year={currentYear}
+                        month={currentMonthIndex}
+                        monthName={MONTHS[currentMonthIndex]}
+                        onPrevMonth={handlePrevMonth}
+                        onNextMonth={handleNextMonth}
+                        userImage={getUserImage()}
+                        isUploading={isUploading}
+                        onPhotoClick={handlePhotoClick}
+                    />
+                </>
             );
         };
 

@@ -20,7 +20,10 @@
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
       "Bash(git switch:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npx tsc:*)",
+      "Bash(hostname:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }
