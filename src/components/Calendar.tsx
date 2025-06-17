@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDay, WEEKDAYS_SHORT, generateCalendarDays } from '../utils/dateUtils';
+import { WEEKDAYS_SHORT, generateCalendarDays } from '../utils/dateUtils';
 
 interface CalendarProps {
   year: number;
@@ -33,7 +33,7 @@ const Calendar: React.FC<CalendarProps> = ({ year, month, monthName, onPrevMonth
   return (
     <div className="w-full h-screen flex flex-col text-white font-poppins overflow-hidden" style={{ backgroundColor: '#3182CE' }}>
       {/* Top arch photo area - fixed size */}
-      <div className="relative w-full flex items-end justify-center" style={{ height: '248px' }}>
+      <div className="relative w-full flex items-end justify-center" style={{ height: '248px', paddingBottom: 0 }}>
         <div 
           className="bg-cover bg-center"
           style={{
@@ -50,7 +50,7 @@ const Calendar: React.FC<CalendarProps> = ({ year, month, monthName, onPrevMonth
 
       {/* Month title with navigation - 10% of screen */}
       <div 
-        className="relative text-center mb-8 px-4" 
+        className="relative text-center mb-2 px-4" 
         style={{ 
           height: '10vh', 
           display: 'flex', 

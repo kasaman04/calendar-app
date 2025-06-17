@@ -20,6 +20,22 @@ html, body {
   height: 100vh;
 }
 
+/* Arch photo styles */
+.arch-photo {
+  border-top-left-radius: 100%;
+  border-top-right-radius: 100%;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.arch-photo:hover {
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
 /* Force mobile viewport on desktop */
 @media screen and (min-width: 768px) {
   html {
