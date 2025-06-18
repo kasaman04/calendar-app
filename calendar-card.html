@@ -99,6 +99,43 @@
         .long-schedule-modal.active .long-schedule-container {
             transform: scale(1);
         }
+
+        /* スケジュール詳細モーダルのスタイル */
+        .schedule-detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .schedule-detail-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .schedule-detail-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .schedule-detail-modal.active .schedule-detail-container {
+            transform: scale(1);
+        }
         
         /* 入力フィールド強制スタイル - TailwindCSS競合回避 */
         input[type="text"], textarea {
@@ -1387,8 +1424,13 @@
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
                                                     top: `${startRow * 40 + 20}px`,
+                                                    cursor: 'pointer',
                                                 }}
                                                 title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    alert(`スケジュール: ${schedule.title}`);
+                                                }}
                                             />
                                         );
                                     } else {
@@ -1407,8 +1449,13 @@
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
                                                         top: `${row * 40 + 20}px`,
+                                                        cursor: 'pointer',
                                                     }}
                                                     title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        alert(`スケジュール: ${schedule.title}`);
+                                                    }}
                                                 />
                                             );
                                         }
@@ -2072,6 +2119,142 @@
                             </div>
                         </div>
                     )}
+                    
+                    {/* スケジュール詳細表示モーダル */}
+                    {false && showScheduleDetailModal && (
+                        <div className="schedule-detail-modal active">
+                            <div className="schedule-detail-container">
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '20px'
+                                }}>
+                                    <h3 style={{
+                                        margin: 0,
+                                        fontSize: '18px',
+                                        fontWeight: '600',
+                                        color: '#333'
+                                    }}>
+                                        {scheduleDetailData.date}の予定
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowScheduleDetailModal(false)}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            fontSize: '20px',
+                                            cursor: 'pointer',
+                                            color: '#666',
+                                            padding: '0',
+                                            width: '24px',
+                                            height: '24px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <div style={{ marginBottom: '16px' }}>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        color: '#666',
+                                        marginBottom: '8px'
+                                    }}>
+                                        時間帯を選択してください
+                                    </div>
+                                    
+                                    {/* 時間バー */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        marginBottom: '16px',
+                                        justifyContent: 'space-between',
+                                        fontSize: '12px',
+                                        color: '#666'
+                                    }}>
+                                        <span>4</span>
+                                        <span>8</span>
+                                        <span>12</span>
+                                        <span>16</span>
+                                        <span>20</span>
+                                    </div>
+                                    
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(6, 1fr)',
+                                        gap: '2px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {scheduleDetailData.timeSlots && scheduleDetailData.timeSlots.map((slot, index) => {
+                                            const colors = {
+                                                work: '#ff9a9e',
+                                                rest: '#a8e6cf',
+                                                outing: '#ffd3a5',
+                                                study: '#c7ceea'
+                                            };
+                                            
+                                            let backgroundColor = '#f0f0f0';
+                                            let activityType = null;
+                                            let memo = '';
+                                            
+                                            if (slot) {
+                                                if (typeof slot === 'object' && slot.type) {
+                                                    activityType = slot.type;
+                                                    backgroundColor = colors[slot.type] || '#f0f0f0';
+                                                    memo = slot.memo || '';
+                                                } else if (typeof slot === 'string') {
+                                                    activityType = slot;
+                                                    backgroundColor = colors[slot] || '#f0f0f0';
+                                                }
+                                            }
+                                            
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        height: '20px',
+                                                        backgroundColor: backgroundColor,
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer',
+                                                        border: '1px solid rgba(0, 0, 0, 0.1)'
+                                                    }}
+                                                    title={memo ? `${getActivityLabel(activityType)} - ${memo}` : getActivityLabel(activityType)}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    {/* 活動詳細リスト */}
+                                    <div style={{ marginTop: '16px' }}>
+                                        {scheduleDetailData.activities && scheduleDetailData.activities.map((activity, index) => (
+                                            <div key={index} style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                marginBottom: '8px',
+                                                fontSize: '14px'
+                                            }}>
+                                                <div style={{
+                                                    width: '12px',
+                                                    height: '12px',
+                                                    backgroundColor: activity.color,
+                                                    borderRadius: '2px',
+                                                    marginRight: '8px'
+                                                }}></div>
+                                                <span style={{ color: '#333' }}>
+                                                    {activity.timeRange} {activity.label}
+                                                    {activity.memo && ` - ${activity.memo}`}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -2116,7 +2299,20 @@
             const [currentMonthIndex, setCurrentMonthIndex] = useState(currentDate.getMonth());
             const [isUploading, setIsUploading] = useState(false);
             const [currentUploadPosition, setCurrentUploadPosition] = useState(0);
+            const [showScheduleDetailModal, setShowScheduleDetailModal] = useState(false);
+            const [scheduleDetailData, setScheduleDetailData] = useState({});
             const { addImage, getImages } = useMonthImages();
+
+            // 活動ラベルを取得するヘルパー関数
+            const getActivityLabel = (activityType) => {
+                switch (activityType) {
+                    case 'work': return '仕事';
+                    case 'rest': return '休み';
+                    case 'outing': return '外出';
+                    case 'study': return '勉強';
+                    default: return '空き';
+                }
+            };
 
             // 画像選択処理
             const handleFileSelect = async (event) => {
@@ -2158,6 +2354,63 @@
             const getCurrentMonthData = () => {
                 const images = getImages(currentYear, currentMonthIndex);
                 return { images };
+            };
+
+            // スケジュール詳細表示関数
+            const showScheduleDetails = (schedule, dayIndex) => {
+                const days = generateCalendarDays(currentYear, currentMonthIndex);
+                const day = days.slice(0, 35)[dayIndex];
+                if (!day) return;
+
+                // その日のスケジュールデータを取得
+                const calendarData = JSON.parse(localStorage.getItem('calendarData') || '{}');
+                const dayData = calendarData[day.fullDate];
+                
+                if (!dayData || !dayData.slots) {
+                    alert('この日のスケジュールデータが見つかりません');
+                    return;
+                }
+
+                // 活動詳細リストを作成
+                const activities = [];
+                const colors = {
+                    work: '#ff9a9e',
+                    rest: '#a8e6cf',
+                    outing: '#ffd3a5',
+                    study: '#c7ceea'
+                };
+
+                dayData.slots.forEach((slot, index) => {
+                    if (slot) {
+                        let activityType = null;
+                        let memo = '';
+                        
+                        if (typeof slot === 'object' && slot.type) {
+                            activityType = slot.type;
+                            memo = slot.memo || '';
+                        } else if (typeof slot === 'string') {
+                            activityType = slot;
+                        }
+                        
+                        if (activityType) {
+                            const startHour = 4 + (index * 4);
+                            const endHour = startHour + 4;
+                            activities.push({
+                                timeRange: `${startHour}～${endHour}時`,
+                                label: getActivityLabel(activityType),
+                                color: colors[activityType] || '#f0f0f0',
+                                memo: memo
+                            });
+                        }
+                    }
+                });
+
+                setScheduleDetailData({
+                    date: `${day.date}日`,
+                    timeSlots: dayData.slots,
+                    activities: activities
+                });
+                setShowScheduleDetailModal(true);
             };
 
             const handlePrevMonth = () => {
