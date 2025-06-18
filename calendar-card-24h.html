@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calendar Card UI</title>
+    <title>Calendar Card UI - 24Hour Mode</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -106,7 +106,7 @@
             }
         }
 
-        /* 4時間分割バーのスタイル */
+        /* 24時間分割バーのスタイル */
         .time-bar-overlay {
             position: fixed;
             top: 0;
@@ -143,32 +143,41 @@
             transform: scale(1);
         }
 
+        /* 24時間縦型スロット - 2列レイアウト */
         .time-slots {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 8px;
             margin-top: 16px;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .time-slot {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
             border: none;
-            border-radius: 16px;
-            padding: 16px 12px;
+            border-radius: 12px;
+            padding: 8px 10px;
             color: white;
             font-family: 'Comfortaa', sans-serif;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 35px;
+            text-align: center;
         }
 
         .time-slot:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
         }
 
         .time-slot:active {
@@ -190,12 +199,24 @@
             left: 100%;
         }
 
-        .time-slot-0 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .time-slot-4 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .time-slot-8 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .time-slot-12 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        .time-slot-16 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .time-slot-20 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        /* 24時間の色分け - 青いトーンに統一（コントラスト強化） */
+        .time-slot-0, .time-slot-1, .time-slot-2, .time-slot-3, .time-slot-4, .time-slot-5 { 
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); 
+        }
+        .time-slot-6, .time-slot-7, .time-slot-8, .time-slot-9, .time-slot-10, .time-slot-11 { 
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+        }
+        .time-slot-12, .time-slot-13, .time-slot-14, .time-slot-15, .time-slot-16, .time-slot-17 { 
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); 
+        }
+        .time-slot-18, .time-slot-19, .time-slot-20, .time-slot-21, .time-slot-22, .time-slot-23 { 
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); 
+        }
+
+        /* 予定があるボタンはグレーに */
+        .time-slot.has-schedule { 
+            background: #d1d5db !important; 
+        }
 
         .close-btn {
             position: absolute;
@@ -294,7 +315,7 @@
             const days = generateCalendarDays(year, month);
             const [selectedDate, setSelectedDate] = useState(null);
             const [showTimeBar, setShowTimeBar] = useState(false);
-            const [timeSlots, setTimeSlots] = useState({});
+            const [timeSlots, setTimeSlots] = useState(JSON.parse(localStorage.getItem('timeSlots24h') || '{}'));
             const [showActivityMenu, setShowActivityMenu] = useState(false);
             const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
             const [showScheduleList, setShowScheduleList] = useState(false);
@@ -302,6 +323,11 @@
             const [showHideConfirm, setShowHideConfirm] = useState(false);
             const [selectedActivity, setSelectedActivity] = useState(null);
             const [activityMemos, setActivityMemos] = useState({});
+
+            // ローカルストレージに保存
+            React.useEffect(() => {
+                localStorage.setItem('timeSlots24h', JSON.stringify(timeSlots));
+            }, [timeSlots]);
 
             // メモ変更ハンドラーを最適化（依存関係を削除）
             const handleMemoChange = React.useCallback((activityKey, newValue) => {
@@ -340,7 +366,7 @@
                 setActivityMemos({});
             };
 
-            // タイムスロットクリック時の処理
+            // タイムスロットクリック時の処理（24時間版）
             const handleSlotClick = (slotIndex) => {
                 const dateKey = selectedDate?.fullDate;
                 const currentActivity = timeSlots[`${dateKey}-${slotIndex}`];
@@ -384,72 +410,46 @@
                 setActivityMemos({});
             };
 
-            // スロットの色を取得
-            const getSlotColor = (slotIndex) => {
+            // スロットに予定があるかチェック（24時間版）
+            const hasSchedule = (slotIndex) => {
                 const dateKey = selectedDate?.fullDate;
                 const activity = timeSlots[`${dateKey}-${slotIndex}`];
-                const colors = {
-                    work: '#ff9a9e',    // 可愛いピンク
-                    rest: '#a8e6cf',    // 優しいミントグリーン
-                    outing: '#ffd3a5',  // 温かいピーチ
-                    study: '#c7ceea'    // 柔らかいラベンダー
-                };
-                return activity ? colors[activity.type || activity] : 'transparent';
+                return !!activity;
             };
 
-            // TimeBar24 コンポーネント（インライン実装）
-            const TimeLabel = ({ index, text }) => (
-                React.createElement('span', {
-                    className: 'absolute text-sm font-medium text-gray-800',
-                    style: { 
-                        left: `${(index / 6) * 100}%`, 
-                        transform: 'translateX(-50%)',
-                        top: '100%',
-                        marginTop: '4px'
-                    }
-                }, text)
-            );
-
+            // TimeBar24 コンポーネント（24時間版に変更）
             const TimeBar24 = () => (
                 React.createElement('div', { 
                     className: 'relative w-full',
                     style: { marginBottom: '8px' }
                 }, [
-                    // メインのタイムバー
+                    // 24時間分割のタイムスロット
                     React.createElement('div', {
-                        key: 'bar',
-                        className: 'grid grid-cols-6 gap-0',
-                        style: {
-                            height: '12px',
-                            borderRadius: '9999px',
-                            border: '1px solid #343A40',
-                            backgroundColor: 'transparent'
-                        }
-                    }, Array.from({ length: 6 }, (_, index) => 
-                        React.createElement('div', {
-                            key: index,
-                            onClick: () => handleSlotClick(index),
-                            style: {
-                                height: '100%',
-                                backgroundColor: getSlotColor(index),
-                                borderRight: index < 5 ? '1px solid #343A40' : 'none',
-                                borderTopLeftRadius: index === 0 ? '9999px' : '0',
-                                borderBottomLeftRadius: index === 0 ? '9999px' : '0',
-                                borderTopRightRadius: index === 5 ? '9999px' : '0',
-                                borderBottomRightRadius: index === 5 ? '9999px' : '0',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.2s ease'
-                            }
-                        })
-                    )),
-                    // タイムラベル
-                    ...['4', '8', '12', '16', '20'].map((time, index) => 
-                        React.createElement(TimeLabel, {
-                            key: time,
-                            index: index + 1,
-                            text: time
-                        })
-                    )
+                        key: 'slots',
+                        className: 'time-slots'
+                    }, Array.from({ length: 24 }, (_, hour) => 
+                        React.createElement('button', {
+                            key: hour,
+                            className: `time-slot time-slot-${hour}${hasSchedule(hour) ? ' has-schedule' : ''}`,
+                            onClick: () => handleSlotClick(hour)
+                        }, [
+                            React.createElement('div', {
+                                key: 'hour',
+                                style: {
+                                    fontWeight: '600',
+                                    fontSize: '11px',
+                                    marginBottom: '2px'
+                                }
+                            }, `${hour.toString().padStart(2, '0')}:00`),
+                            React.createElement('div', {
+                                key: 'range',
+                                style: {
+                                    fontSize: '8px',
+                                    opacity: 0.8
+                                }
+                            }, `${hour}〜${(hour + 1) % 24}時`)
+                        ])
+                    ))
                 ])
             );
 
@@ -494,7 +494,7 @@
                             textAlign: 'center',
                             color: '#333'
                         }
-                    }, '活動を選択'),
+                    }, `${selectedSlotIndex}時の活動を選択`),
                     
                     ...activities.map(activity => 
                         React.createElement('div', {
@@ -689,7 +689,7 @@
                     if (keyYearMonth === currentYearMonth) {
                         const date = `${keyYear}-${keyMonth}-${day}`;
                         if (!daysWithSchedules[date]) {
-                            daysWithSchedules[date] = Array(6).fill(null);
+                            daysWithSchedules[date] = Array(24).fill(null);
                         }
                         daysWithSchedules[date][parseInt(slotIndex)] = timeSlots[key];
                     }
@@ -709,74 +709,6 @@
                 return result;
             };
 
-            // 個別タイムバー表示コンポーネント
-            const ScheduledDayBar = ({ date, slots }) => {
-                console.log('ScheduledDayBar rendering:', date, slots); // デバッグ用
-                
-                // 色を取得する関数
-                const getSlotColor = (slot) => {
-                    const colors = {
-                        work: '#ff9a9e',    // 可愛いピンク
-                        rest: '#a8e6cf',    // 優しいミントグリーン
-                        outing: '#ffd3a5',  // 温かいピーチ
-                        study: '#c7ceea'    // 柔らかいラベンダー
-                    };
-                    
-                    if (!slot) return 'transparent';
-                    
-                    // 新しいデータ構造（オブジェクト）の場合
-                    if (typeof slot === 'object' && slot.type) {
-                        return colors[slot.type] || 'transparent';
-                    }
-                    
-                    // 古いデータ構造（文字列）の場合
-                    if (typeof slot === 'string') {
-                        return colors[slot] || 'transparent';
-                    }
-                    
-                    return 'transparent';
-                };
-
-                return React.createElement('div', {
-                    style: {
-                        marginBottom: '12px',
-                        padding: '8px',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        borderRadius: '8px'
-                    }
-                }, [
-                    React.createElement('div', {
-                        key: 'date-label',
-                        style: {
-                            fontSize: '12px',
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            marginBottom: '4px',
-                            textAlign: 'center'
-                        }
-                    }, `${parseInt(date.split('-')[2])}日`),
-                    React.createElement('div', {
-                        key: 'timeline',
-                        className: 'grid grid-cols-6 gap-0',
-                        style: {
-                            height: '8px',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            overflow: 'hidden'
-                        }
-                    }, slots.map((slot, index) => {
-                        console.log(`Slot ${index}:`, slot); // デバッグ用
-                        return React.createElement('div', {
-                            key: index,
-                            style: {
-                                height: '100%',
-                                backgroundColor: getSlotColor(slot),
-                                borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
-                            }
-                        });
-                    }))
-                ]);
-            };
-            
             // 今日の日付を取得
             const today = new Date();
             const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -1149,7 +1081,7 @@
                                 transition: 'background-color 0.2s ease'
                             }}
                         >
-                            予定一覧 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
+                            予定一覧 24時間版 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
                         </div>
                         
                         <div style={{
@@ -1224,7 +1156,7 @@
                                             </div>
                                             <div style={{
                                                 display: 'grid',
-                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gridTemplateColumns: 'repeat(24, 1fr)',
                                                 gap: '1px',
                                                 height: '12px',
                                                 borderRadius: '6px',
@@ -1269,7 +1201,7 @@
                                                                 height: '100%',
                                                                 backgroundColor: backgroundColor
                                                             }}
-                                                            title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
+                                                            title={`${slotIndex}:00-${(slotIndex + 1) % 24}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
                                                         />
                                                     );
                                                 })}
@@ -1278,14 +1210,14 @@
                                             {/* 時間ラベル */}
                                             <div style={{
                                                 display: 'grid',
-                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gridTemplateColumns: 'repeat(12, 1fr)',
                                                 gap: '1px',
                                                 marginTop: '4px',
-                                                fontSize: '8px',
+                                                fontSize: '6px',
                                                 color: 'rgba(255, 255, 255, 0.6)',
                                                 textAlign: 'center'
                                             }}>
-                                                {[0, 4, 8, 12, 16, 20].map((hour, idx) => (
+                                                {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22].map((hour, idx) => (
                                                     <div key={idx}>{hour}</div>
                                                 ))}
                                             </div>
@@ -1296,19 +1228,19 @@
                         )}
                     </div>
 
-                    {/* 4時間分割バー */}
+                    {/* 24時間分割バー */}
                     <div className={`time-bar-overlay ${showTimeBar ? 'active' : ''}`} onClick={closeTimeBar}>
                         <div className="time-bar-container" onClick={(e) => e.stopPropagation()}>
                             <button className="close-btn" onClick={closeTimeBar}>×</button>
                             
                             <div className="date-title">
-                                {selectedDate ? `${selectedDate.date}日の予定` : ''}
+                                {selectedDate ? `${selectedDate.date}日の予定（24時間）` : ''}
                             </div>
                             <div className="date-subtitle">
-                                時間帯を選択してください
+                                時間を選択してください
                             </div>
 
-                            {/* 極細タイムバー */}
+                            {/* 24時間タイムバー */}
                             <div style={{ marginBottom: '20px', position: 'relative' }}>
                                 <TimeBar24 />
                                 
@@ -1318,12 +1250,12 @@
                                     const scheduleItems = [];
                                     
                                     // 現在の日付の予定を取得
-                                    for (let i = 0; i < 6; i++) {
+                                    for (let i = 0; i < 24; i++) {
                                         const slotKey = `${dateKey}-${i}`;
                                         const activity = timeSlots[slotKey];
                                         if (activity) {
-                                            const startHour = i * 4;
-                                            const endHour = (i + 1) * 4;
+                                            const startHour = i;
+                                            const endHour = (i + 1) % 24;
                                             const colors = {
                                                 work: '#ff9a9e',
                                                 rest: '#a8e6cf',
@@ -1347,7 +1279,7 @@
                                             }
                                             
                                             scheduleItems.push({
-                                                time: `${startHour}〜${endHour}時`,
+                                                time: `${startHour.toString().padStart(2, '0')}:00〜${endHour.toString().padStart(2, '0')}:00`,
                                                 activity: labels[activityType] || activityType,
                                                 memo: memo,
                                                 color: colors[activityType] || '#ccc'
@@ -1402,7 +1334,7 @@
                                                         style: {
                                                             fontWeight: '500',
                                                             color: '#333',
-                                                            minWidth: '60px'
+                                                            minWidth: '80px'
                                                         }
                                                     }, item.time),
                                                     React.createElement('span', {
@@ -1504,7 +1436,7 @@
             const [images, setImages] = useState({});
 
             React.useEffect(() => {
-                const savedImages = localStorage.getItem('monthImages');
+                const savedImages = localStorage.getItem('monthImages24h');
                 if (savedImages) {
                     setImages(JSON.parse(savedImages));
                 }
@@ -1522,7 +1454,7 @@
                     uploadDate: new Date().toISOString()
                 };
                 setImages(newImages);
-                localStorage.setItem('monthImages', JSON.stringify(newImages));
+                localStorage.setItem('monthImages24h', JSON.stringify(newImages));
             };
 
             const getImages = (year, month) => {
