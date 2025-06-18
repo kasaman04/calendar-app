@@ -36,6 +36,70 @@
             overflow-y: scroll;
         }
         
+        /* 長期スケジュール関連のスタイル */
+        .long-schedule-mode {
+            position: relative;
+        }
+        
+        .long-schedule-bar {
+            position: absolute;
+            height: 4px;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            border-radius: 2px;
+            z-index: 5;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .day-selectable {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .day-selecting {
+            background-color: rgba(251, 191, 36, 0.3) !important;
+        }
+        
+        .day-selected {
+            background-color: rgba(251, 191, 36, 0.5) !important;
+        }
+        
+        .long-schedule-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .long-schedule-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .long-schedule-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .long-schedule-modal.active .long-schedule-container {
+            transform: scale(1);
+        }
         
         /* Force mobile viewport */
         @media screen and (min-width: 768px) {

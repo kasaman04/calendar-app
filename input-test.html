@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>入力フィールドテスト</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'baloo': ['Baloo 2', 'cursive'],
+                        'comfortaa': ['Comfortaa', 'sans-serif'],
+                        'varela': ['Varela Round', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body {
+            font-family: 'Comfortaa', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #3182CE;
+            width: 100%;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: scroll;
+        }
+        
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .modal-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-field {
+            width: 100% !important;
+            padding: 12px !important;
+            border: 1px solid rgb(229, 231, 235) !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            outline: none !important;
+            font-family: inherit !important;
+            box-sizing: border-box !important;
+            background: white !important;
+            color: black !important;
+        }
+        
+        .textarea-field {
+            width: 100% !important;
+            padding: 12px !important;
+            border: 1px solid rgb(229, 231, 235) !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            outline: none !important;
+            font-family: inherit !important;
+            resize: none !important;
+            box-sizing: border-box !important;
+            background: white !important;
+            color: black !important;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .btn-save {
+            background: #f59e0b;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="modal-container">
+        <div class="title">長期スケジュール設定</div>
+        <div class="subtitle">5日～7日（3日間）</div>
+        
+        <div class="input-group">
+            <input 
+                type="text" 
+                class="input-field"
+                placeholder="予定のタイトルを入力" 
+                maxlength="25"
+                autofocus
+                style="width: 100%; padding: 12px; border: 1px solid rgb(229, 231, 235); border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; box-sizing: border-box; background: white; color: black;"
+            >
+        </div>
+        
+        <div class="input-group">
+            <textarea 
+                class="textarea-field"
+                placeholder="メモ（任意）" 
+                rows="3"
+                style="width: 100%; padding: 12px; border: 1px solid rgb(229, 231, 235); border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; resize: none; box-sizing: border-box; background: white; color: black;"
+            ></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-cancel">キャンセル</button>
+            <button class="btn btn-save">保存</button>
+        </div>
+    </div>
+
+    <script>
+        // 入力値を追跡してデバッグ
+        const titleInput = document.querySelector('.input-field');
+        const memoTextarea = document.querySelector('.textarea-field');
+        
+        titleInput.addEventListener('input', function(e) {
+            console.log('タイトル入力:', e.target.value);
+        });
+        
+        memoTextarea.addEventListener('input', function(e) {
+            console.log('メモ入力:', e.target.value);
+        });
+        
+        // フォーカス確認
+        titleInput.addEventListener('focus', function() {
+            console.log('タイトルフィールドにフォーカス');
+        });
+        
+        titleInput.addEventListener('blur', function() {
+            console.log('タイトルフィールドからフォーカス外れた');
+        });
+    </script>
+</body>
+</html>

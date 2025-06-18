@@ -36,6 +36,105 @@
             overflow-y: scroll;
         }
         
+        /* 長期スケジュール関連のスタイル */
+        .long-schedule-mode {
+            position: relative;
+        }
+        
+        .long-schedule-bar {
+            position: absolute;
+            height: 4px;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            border-radius: 2px;
+            z-index: 5;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .day-selectable {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .day-selecting {
+            background-color: rgba(251, 191, 36, 0.3) !important;
+        }
+        
+        .day-selected {
+            background-color: rgba(251, 191, 36, 0.5) !important;
+        }
+        
+        .long-schedule-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .long-schedule-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .long-schedule-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .long-schedule-modal.active .long-schedule-container {
+            transform: scale(1);
+        }
+        
+        /* 入力フィールド強制スタイル - TailwindCSS競合回避 */
+        input[type="text"], textarea {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            background-color: white !important;
+            color: black !important;
+            border: 1px solid rgb(229, 231, 235) !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            font-size: 14px !important;
+            font-family: inherit !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            -webkit-touch-callout: default !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        /* ボタン強制スタイル - TailwindCSS競合回避 */
+        button {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            -webkit-tap-highlight-color: transparent !important;
+            border: none !important;
+            outline: none !important;
+            font-family: inherit !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
         
         /* Force mobile viewport */
         @media screen and (min-width: 768px) {
@@ -302,6 +401,24 @@
             const [showHideConfirm, setShowHideConfirm] = useState(false);
             const [selectedActivity, setSelectedActivity] = useState(null);
             const [activityMemos, setActivityMemos] = useState({});
+            
+            // 長期スケジュール関連の状態
+            const [longScheduleMode, setLongScheduleMode] = useState(false);
+            const [selectedDays, setSelectedDays] = useState([]);
+            const [isSelecting, setIsSelecting] = useState(false);
+            const [longSchedules, setLongSchedules] = useState({});
+            const [showLongScheduleModal, setShowLongScheduleModal] = useState(false);
+            // 長期スケジュール入力は非制御コンポーネントで管理（window.longScheduleTitleInput, window.longScheduleMemoInput）
+
+
+            const openLongScheduleModal = () => {
+                // 入力フィールドをクリア
+                setTimeout(() => {
+                    if (window.longScheduleTitleInput) window.longScheduleTitleInput.value = '';
+                    if (window.longScheduleMemoInput) window.longScheduleMemoInput.value = '';
+                }, 100);
+                setShowLongScheduleModal(true);
+            };
 
             // メモ変更ハンドラーを最適化（依存関係を削除）
             const handleMemoChange = React.useCallback((activityKey, newValue) => {
@@ -322,9 +439,92 @@
                 console.log('Current activityMemos state:', activityMemos);
             }, [activityMemos]);
             
+            // 長期スケジュール関連のハンドラー
+            const startLongScheduleMode = () => {
+                setLongScheduleMode(true);
+                setSelectedDays([]);
+            };
+            
+            const exitLongScheduleMode = () => {
+                setLongScheduleMode(false);
+                setSelectedDays([]);
+                setIsSelecting(false);
+            };
+            
+            const saveLongSchedule = () => {
+                // 非制御コンポーネントから値を取得
+                const titleValue = window.longScheduleTitleInput?.value || '';
+                const memoValue = window.longScheduleMemoInput?.value || '';
+                
+                console.log('saveLongSchedule called', { title: titleValue, memo: memoValue });
+                if (!titleValue || !titleValue.trim()) {
+                    console.log('タイトルが空のため保存をスキップ');
+                    return;
+                }
+                
+                const scheduleId = Date.now().toString();
+                const scheduleData = {
+                    id: scheduleId,
+                    title: titleValue.trim(),
+                    memo: memoValue.trim(),
+                    startDate: selectedDays[0]?.fullDate,
+                    endDate: selectedDays[selectedDays.length - 1]?.fullDate,
+                    days: selectedDays.map(d => d.fullDate)
+                };
+                
+                console.log('長期スケジュールを保存:', scheduleData);
+                
+                setLongSchedules(prev => ({
+                    ...prev,
+                    [scheduleId]: scheduleData
+                }));
+                
+                setShowLongScheduleModal(false);
+                exitLongScheduleMode();
+            };
+            
+            const handleLongScheduleDayClick = (day) => {
+                if (!day.isCurrentMonth) return;
+                
+                if (selectedDays.length === 0) {
+                    // 最初の日を選択
+                    setSelectedDays([day]);
+                    setIsSelecting(true);
+                } else if (selectedDays.length === 1) {
+                    // 2番目の日を選択して期間を確定
+                    const firstDay = selectedDays[0];
+                    const daysBetween = getDaysBetween(firstDay, day);
+                    setSelectedDays(daysBetween);
+                    setIsSelecting(false);
+                    // モーダルを開く
+                    openLongScheduleModal();
+                }
+            };
+            
+            const getDaysBetween = (startDay, endDay) => {
+                const start = new Date(startDay.fullDate);
+                const end = new Date(endDay.fullDate);
+                if (start > end) [start, end] = [end, start];
+                
+                const days = [];
+                const current = new Date(start);
+                while (current <= end) {
+                    const dayData = {
+                        date: current.getDate(),
+                        isCurrentMonth: current.getMonth() === month,
+                        fullDate: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`
+                    };
+                    days.push(dayData);
+                    current.setDate(current.getDate() + 1);
+                }
+                return days;
+            };
+            
             // 日付クリック時の処理
             const handleDayClick = (day) => {
-                if (day.isCurrentMonth) {
+                if (longScheduleMode) {
+                    handleLongScheduleDayClick(day);
+                } else if (day.isCurrentMonth) {
                     setSelectedDate(day);
                     setShowTimeBar(true);
                 }
@@ -1086,6 +1286,27 @@
                         >
                             ›
                         </button>
+                        
+                        {/* 長期スケジュールボタン */}
+                        <button
+                            onClick={longScheduleMode ? exitLongScheduleMode : startLongScheduleMode}
+                            style={{
+                                position: 'absolute',
+                                bottom: '10px',
+                                right: '16px',
+                                background: longScheduleMode ? '#f59e0b' : 'rgba(255, 255, 255, 0.2)',
+                                border: 'none',
+                                borderRadius: '20px',
+                                padding: '8px 12px',
+                                color: 'white',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            {longScheduleMode ? '期間選択終了' : '期間選択'}
+                        </button>
                     </div>
 
                     {/* Calendar grid - 40% of screen */}
@@ -1101,22 +1322,177 @@
                         </div>
                         
                         {/* Calendar days - larger size */}
-                        <div className="grid grid-cols-7 gap-0 w-full" style={{maxWidth: '280px', margin: '0 auto'}}>
-                            {days.slice(0, 35).map((day, index) => (
-                                <div 
-                                    key={index}
-                                    className={`flex items-center justify-center rounded-full text-md ${day.isCurrentMonth ? 'text-white' : 'text-white opacity-30'} ${day.fullDate === todayDateStr ? 'bg-white bg-opacity-25' : ''}`}
-                                    style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                                        animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none'
-                                    }}
-                                    onClick={() => handleDayClick(day)}
-                                >
-                                    {day.date}
-                                </div>
-                            ))}
+                        <div className="grid grid-cols-7 gap-0 w-full long-schedule-mode" style={{maxWidth: '280px', margin: '0 auto', position: 'relative'}}>
+                            {days.slice(0, 35).map((day, index) => {
+                                const isSelected = selectedDays.some(d => d.fullDate === day.fullDate);
+                                const isSelecting = longScheduleMode && selectedDays.length === 1;
+                                
+                                return (
+                                    <div 
+                                        key={index}
+                                        className={`flex items-center justify-center rounded-full text-md day-selectable ${day.isCurrentMonth ? 'text-white' : 'text-white opacity-30'} ${day.fullDate === todayDateStr ? 'bg-white bg-opacity-25' : ''} ${isSelected ? 'day-selected' : ''} ${isSelecting ? 'day-selecting' : ''}`}
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            cursor: day.isCurrentMonth ? 'pointer' : 'default',
+                                            animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none'
+                                        }}
+                                        onClick={() => handleDayClick(day)}
+                                    >
+                                        {day.date}
+                                    </div>
+                                );
+                            })}
+                            
+                            {/* 保存された長期スケジュールバーの表示 */}
+                            {Object.values(longSchedules).map(schedule => {
+                                const bars = [];
+                                let currentStart = null;
+                                let currentEnd = null;
+                                
+                                // スケジュールの日付をソート
+                                const sortedDays = schedule.days.sort();
+                                
+                                for (let i = 0; i < sortedDays.length; i++) {
+                                    const dayIndex = days.slice(0, 35).findIndex(d => d.fullDate === sortedDays[i]);
+                                    if (dayIndex === -1) continue;
+                                    
+                                    if (currentStart === null) {
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    } else if (dayIndex === currentEnd + 1) {
+                                        currentEnd = dayIndex;
+                                    } else {
+                                        bars.push({ start: currentStart, end: currentEnd });
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    }
+                                }
+                                
+                                if (currentStart !== null) {
+                                    bars.push({ start: currentStart, end: currentEnd });
+                                }
+                                
+                                return bars.map((bar, idx) => {
+                                    const startRow = Math.floor(bar.start / 7);
+                                    const endRow = Math.floor(bar.end / 7);
+                                    const startCol = bar.start % 7;
+                                    const endCol = bar.end % 7;
+                                    
+                                    if (startRow === endRow) {
+                                        return (
+                                            <div
+                                                key={`saved-bar-${schedule.id}-${idx}`}
+                                                className="long-schedule-bar"
+                                                style={{
+                                                    left: `${(startCol / 7) * 100}%`,
+                                                    width: `${((endCol - startCol + 1) / 7) * 100}%`,
+                                                    top: `${startRow * 40 + 20}px`,
+                                                }}
+                                                title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                            />
+                                        );
+                                    } else {
+                                        const barElements = [];
+                                        for (let row = startRow; row <= endRow; row++) {
+                                            const isFirstRow = row === startRow;
+                                            const isLastRow = row === endRow;
+                                            const left = isFirstRow ? startCol : 0;
+                                            const right = isLastRow ? endCol : 6;
+                                            
+                                            barElements.push(
+                                                <div
+                                                    key={`saved-bar-${schedule.id}-${idx}-${row}`}
+                                                    className="long-schedule-bar"
+                                                    style={{
+                                                        left: `${(left / 7) * 100}%`,
+                                                        width: `${((right - left + 1) / 7) * 100}%`,
+                                                        top: `${row * 40 + 20}px`,
+                                                    }}
+                                                    title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                />
+                                            );
+                                        }
+                                        return barElements;
+                                    }
+                                });
+                            })}
+                            
+                            {/* 選択中の長期スケジュールバーの表示 */}
+                            {selectedDays.length > 1 && (() => {
+                                // 選択された日付の範囲に基づいてバーを描画
+                                const bars = [];
+                                let currentStart = null;
+                                let currentEnd = null;
+                                
+                                // 連続する日付をグループ化してバーを作成
+                                for (let i = 0; i < selectedDays.length; i++) {
+                                    const day = selectedDays[i];
+                                    const dayIndex = days.slice(0, 35).findIndex(d => d.fullDate === day.fullDate);
+                                    
+                                    if (dayIndex === -1) continue;
+                                    
+                                    if (currentStart === null) {
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    } else if (dayIndex === currentEnd + 1) {
+                                        currentEnd = dayIndex;
+                                    } else {
+                                        // 新しいバーを作成
+                                        bars.push({ start: currentStart, end: currentEnd });
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    }
+                                }
+                                
+                                if (currentStart !== null) {
+                                    bars.push({ start: currentStart, end: currentEnd });
+                                }
+                                
+                                return bars.map((bar, idx) => {
+                                    const startRow = Math.floor(bar.start / 7);
+                                    const endRow = Math.floor(bar.end / 7);
+                                    const startCol = bar.start % 7;
+                                    const endCol = bar.end % 7;
+                                    
+                                    if (startRow === endRow) {
+                                        // 同じ行内のバー
+                                        return (
+                                            <div
+                                                key={`bar-${idx}`}
+                                                className="long-schedule-bar"
+                                                style={{
+                                                    left: `${(startCol / 7) * 100}%`,
+                                                    width: `${((endCol - startCol + 1) / 7) * 100}%`,
+                                                    top: `${startRow * 40 + 20}px`,
+                                                }}
+                                            />
+                                        );
+                                    } else {
+                                        // 複数行にまたがるバー
+                                        const barElements = [];
+                                        for (let row = startRow; row <= endRow; row++) {
+                                            const isFirstRow = row === startRow;
+                                            const isLastRow = row === endRow;
+                                            const left = isFirstRow ? startCol : 0;
+                                            const right = isLastRow ? endCol : 6;
+                                            
+                                            barElements.push(
+                                                <div
+                                                    key={`bar-${idx}-${row}`}
+                                                    className="long-schedule-bar"
+                                                    style={{
+                                                        left: `${(left / 7) * 100}%`,
+                                                        width: `${((right - left + 1) / 7) * 100}%`,
+                                                        top: `${row * 40 + 20}px`,
+                                                    }}
+                                                />
+                                            );
+                                        }
+                                        return barElements;
+                                    }
+                                });
+                            })()}
                         </div>
                     </div>
 
@@ -1490,6 +1866,208 @@
                                         }}
                                     >
                                         no
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 長期スケジュール入力モーダル */}
+                    {showLongScheduleModal && (
+                        <div key="long-schedule-modal" style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10001
+                        }} onClick={() => setShowLongScheduleModal(false)}>
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '20px',
+                                padding: '24px',
+                                width: '320px',
+                                maxWidth: '90vw',
+                                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                                position: 'relative',
+                                pointerEvents: 'auto',
+                                zIndex: 10002
+                            }} onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                    onClick={() => setShowLongScheduleModal(false)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '12px',
+                                        right: '12px',
+                                        background: 'rgba(0, 0, 0, 0.1)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#666',
+                                        fontSize: '18px'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                                
+                                <div style={{
+                                    fontSize: '18px',
+                                    fontWeight: '600',
+                                    color: '#333',
+                                    marginBottom: '16px',
+                                    textAlign: 'center',
+                                    fontFamily: 'Baloo 2, cursive'
+                                }}>
+                                    長期スケジュール設定
+                                </div>
+                                
+                                <div style={{
+                                    fontSize: '14px',
+                                    color: '#666',
+                                    marginBottom: '20px',
+                                    textAlign: 'center'
+                                }}>
+                                    {selectedDays.length > 0 && 
+                                        `${selectedDays[0]?.date}日 〜 ${selectedDays[selectedDays.length - 1]?.date}日 (${selectedDays.length}日間)`
+                                    }
+                                </div>
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="予定のタイトルを入力"
+                                        maxLength="25"
+                                        defaultValue=""
+                                        autoFocus
+                                        ref={(input) => {
+                                            if (input) {
+                                                window.longScheduleTitleInput = input;
+                                                // デバッグ用イベントリスナー
+                                                input.addEventListener('input', (e) => {
+                                                    console.log('✏️ Title input:', e.target.value);
+                                                });
+                                                input.addEventListener('focus', () => {
+                                                    console.log('🎯 Title focused');
+                                                });
+                                                input.addEventListener('blur', () => {
+                                                    console.log('🎯 Title blurred');
+                                                });
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '1px solid rgb(229, 231, 235)',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            fontFamily: 'inherit',
+                                            boxSizing: 'border-box',
+                                            background: 'white',
+                                            color: 'black'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <textarea
+                                        placeholder="メモ（任意）"
+                                        rows={3}
+                                        defaultValue=""
+                                        ref={(textarea) => {
+                                            if (textarea) {
+                                                window.longScheduleMemoInput = textarea;
+                                                // デバッグ用イベントリスナー
+                                                textarea.addEventListener('input', (e) => {
+                                                    console.log('✏️ Memo input:', e.target.value);
+                                                });
+                                                textarea.addEventListener('focus', () => {
+                                                    console.log('🎯 Memo focused');
+                                                });
+                                                textarea.addEventListener('blur', () => {
+                                                    console.log('🎯 Memo blurred');
+                                                });
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '1px solid rgb(229, 231, 235)',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            fontFamily: 'inherit',
+                                            resize: 'none',
+                                            boxSizing: 'border-box',
+                                            background: 'white',
+                                            color: 'black'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '12px'
+                                }}>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('❌ キャンセルボタンがクリックされました');
+                                            setShowLongScheduleModal(false);
+                                            exitLongScheduleMode();
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            background: 'white',
+                                            color: '#666',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            pointerEvents: 'auto',
+                                            zIndex: 10004,
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        キャンセル
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('💾 保存ボタンがクリックされました');
+                                            const titleValue = window.longScheduleTitleInput?.value || '';
+                                            const memoValue = window.longScheduleMemoInput?.value || '';
+                                            console.log('保存ボタンクリック時の状態:', { title: titleValue, memo: memoValue });
+                                            saveLongSchedule();
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            background: '#f59e0b',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            pointerEvents: 'auto',
+                                            zIndex: 10004,
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        保存
                                     </button>
                                 </div>
                             </div>
