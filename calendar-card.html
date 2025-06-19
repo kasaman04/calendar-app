@@ -523,6 +523,11 @@
             // スケジュール詳細モーダル関連の状態
             const [showScheduleDetailModal, setShowScheduleDetailModal] = useState(false);
             const [scheduleDetailData, setScheduleDetailData] = useState(null);
+            
+            // 編集モード関連の状態
+            const [isEditMode, setIsEditMode] = useState(false);
+            const [editTitle, setEditTitle] = useState('');
+            const [editMemo, setEditMemo] = useState('');
 
             // localStorage からの長期スケジュール読み込み
             React.useEffect(() => {
@@ -548,6 +553,9 @@
             const closeScheduleDetailModal = () => {
                 setShowScheduleDetailModal(false);
                 setScheduleDetailData(null);
+                setIsEditMode(false);
+                setEditTitle('');
+                setEditMemo('');
             };
 
             // 日付範囲のテキストを生成する関数
@@ -559,6 +567,53 @@
                 const startDay = startDate.getDate();
                 const endDay = endDate.getDate();
                 return startDay === endDay ? `${startDay}日の予定` : `${startDay}～${endDay}日の予定`;
+            };
+
+            // 編集モード開始
+            const startEditMode = () => {
+                if (scheduleDetailData) {
+                    setEditTitle(scheduleDetailData.title || '');
+                    setEditMemo(scheduleDetailData.memo || '');
+                    setIsEditMode(true);
+                }
+            };
+
+            // 編集モード終了
+            const cancelEditMode = () => {
+                setIsEditMode(false);
+                setEditTitle('');
+                setEditMemo('');
+            };
+
+            // スケジュール更新保存
+            const saveScheduleEdit = () => {
+                if (!editTitle.trim()) {
+                    alert('タイトルを入力してください');
+                    return;
+                }
+
+                try {
+                    const updatedSchedule = {
+                        ...scheduleDetailData,
+                        title: editTitle.trim(),
+                        memo: editMemo.trim()
+                    };
+
+                    const updatedSchedules = {
+                        ...longSchedules,
+                        [scheduleDetailData.id]: updatedSchedule
+                    };
+
+                    setLongSchedules(updatedSchedules);
+                    setScheduleDetailData(updatedSchedule);
+                    localStorage.setItem('longSchedules', JSON.stringify(updatedSchedules));
+                    
+                    setIsEditMode(false);
+                    console.log('スケジュールを更新しました:', updatedSchedule);
+                } catch (error) {
+                    console.error('スケジュール更新エラー:', error);
+                    alert('保存に失敗しました');
+                }
             };
 
             const openLongScheduleModal = () => {
@@ -2273,20 +2328,115 @@
                                 </div>
                                 
                                 <div className="schedule-details">
-                                    <h4 className="details-title">{scheduleDetailData.title}</h4>
-                                    {scheduleDetailData.memo && (
-                                        <p style={{ 
-                                            fontSize: '14px', 
-                                            color: '#666', 
-                                            lineHeight: '1.5',
-                                            margin: '0 0 16px 0',
-                                            padding: '12px',
-                                            background: '#f9fafb',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e5e7eb'
-                                        }}>
-                                            {scheduleDetailData.memo}
-                                        </p>
+                                    {isEditMode ? (
+                                        <>
+                                            {/* 編集モード */}
+                                            <div style={{ marginBottom: '16px' }}>
+                                                <input
+                                                    type="text"
+                                                    value={editTitle}
+                                                    onChange={(e) => setEditTitle(e.target.value)}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '12px',
+                                                        border: '2px solid #e5e7eb',
+                                                        borderRadius: '8px',
+                                                        fontSize: '16px',
+                                                        fontWeight: '600',
+                                                        outline: 'none',
+                                                        boxSizing: 'border-box'
+                                                    }}
+                                                    placeholder="予定のタイトル"
+                                                />
+                                            </div>
+                                            <div style={{ marginBottom: '16px' }}>
+                                                <textarea
+                                                    value={editMemo}
+                                                    onChange={(e) => setEditMemo(e.target.value)}
+                                                    rows={3}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '12px',
+                                                        border: '2px solid #e5e7eb',
+                                                        borderRadius: '8px',
+                                                        fontSize: '14px',
+                                                        outline: 'none',
+                                                        resize: 'vertical',
+                                                        boxSizing: 'border-box'
+                                                    }}
+                                                    placeholder="メモ（任意）"
+                                                />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                                <button
+                                                    onClick={cancelEditMode}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        border: '1px solid #d1d5db',
+                                                        borderRadius: '6px',
+                                                        background: 'white',
+                                                        color: '#6b7280',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px'
+                                                    }}
+                                                >
+                                                    キャンセル
+                                                </button>
+                                                <button
+                                                    onClick={saveScheduleEdit}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        background: '#3b82f6',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500'
+                                                    }}
+                                                >
+                                                    保存
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* 表示モード */}
+                                            <h4 className="details-title">{scheduleDetailData.title}</h4>
+                                            {scheduleDetailData.memo && (
+                                                <p style={{ 
+                                                    fontSize: '14px', 
+                                                    color: '#666', 
+                                                    lineHeight: '1.5',
+                                                    margin: '0 0 16px 0',
+                                                    padding: '12px',
+                                                    background: '#f9fafb',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #e5e7eb'
+                                                }}>
+                                                    {scheduleDetailData.memo}
+                                                </p>
+                                            )}
+                                            {/* 変更ボタン */}
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                                                <button
+                                                    onClick={startEditMode}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        background: '#3b82f6',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500',
+                                                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+                                                    }}
+                                                >
+                                                    変更
+                                                </button>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
