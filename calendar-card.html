@@ -569,6 +569,104 @@
                 return startDay === endDay ? `${startDay}日の予定` : `${startDay}～${endDay}日の予定`;
             };
 
+            // 重複検知とレイヤー配置機能
+            const calculateScheduleLayers = (schedules, days) => {
+                const schedulesWithBars = [];
+                
+                // 各スケジュールのバー情報を計算
+                Object.values(schedules).forEach(schedule => {
+                    const bars = [];
+                    let currentStart = null;
+                    let currentEnd = null;
+                    
+                    const sortedDays = schedule.days.sort();
+                    for (let i = 0; i < sortedDays.length; i++) {
+                        const dayIndex = days.slice(0, 35).findIndex(d => d.fullDate === sortedDays[i]);
+                        if (dayIndex === -1) continue;
+                        
+                        if (currentStart === null) {
+                            currentStart = dayIndex;
+                            currentEnd = dayIndex;
+                        } else if (dayIndex === currentEnd + 1) {
+                            currentEnd = dayIndex;
+                        } else {
+                            bars.push({ start: currentStart, end: currentEnd });
+                            currentStart = dayIndex;
+                            currentEnd = dayIndex;
+                        }
+                    }
+                    
+                    if (currentStart !== null) {
+                        bars.push({ start: currentStart, end: currentEnd });
+                    }
+                    
+                    schedulesWithBars.push({ schedule, bars });
+                });
+
+                // レイヤー配置計算
+                const layeredSchedules = [];
+                schedulesWithBars.forEach(({ schedule, bars }) => {
+                    bars.forEach((bar, barIdx) => {
+                        const startRow = Math.floor(bar.start / 7);
+                        const endRow = Math.floor(bar.end / 7);
+                        
+                        // 既存のレイヤーで重複チェック
+                        let assignedLayer = 0;
+                        let found = false;
+                        
+                        while (!found) {
+                            let hasConflict = false;
+                            
+                            for (const existing of layeredSchedules) {
+                                if (existing.layer === assignedLayer && 
+                                    existing.row === startRow && 
+                                    !(bar.end < existing.bar.start || bar.start > existing.bar.end)) {
+                                    hasConflict = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!hasConflict) {
+                                found = true;
+                            } else {
+                                assignedLayer++;
+                            }
+                        }
+                        
+                        layeredSchedules.push({
+                            schedule,
+                            bar,
+                            barIdx,
+                            row: startRow,
+                            layer: assignedLayer
+                        });
+                    });
+                });
+
+                return layeredSchedules;
+            };
+
+            // 各行の最大レイヤー数を計算
+            const getMaxLayersPerRow = (layeredSchedules) => {
+                const maxLayers = {};
+                layeredSchedules.forEach(item => {
+                    const row = item.row;
+                    if (!maxLayers[row] || maxLayers[row] < item.layer + 1) {
+                        maxLayers[row] = item.layer + 1;
+                    }
+                });
+                return maxLayers;
+            };
+
+            // 動的行高さ計算
+            const calculateRowHeight = (row, maxLayersPerRow) => {
+                const baseHeight = 48;
+                const barHeight = 3;
+                const barSpacing = 6;
+                const additionalLayers = (maxLayersPerRow[row] || 1) - 1;
+                return baseHeight + (additionalLayers * (barHeight + barSpacing));
+            };
+
             // 編集モード開始
             const startEditMode = () => {
                 if (scheduleDetailData) {
@@ -1565,71 +1663,69 @@
                         
                         {/* Calendar days - larger size */}
                         <div className="grid grid-cols-7 gap-0 gap-y-2 w-full long-schedule-mode" style={{maxWidth: '280px', margin: '0 auto', position: 'relative'}}>
-                            {days.slice(0, 35).map((day, index) => {
-                                const isSelected = selectedDays.some(d => d.fullDate === day.fullDate);
-                                const isSelecting = longScheduleMode && selectedDays.length === 1;
+                            {(() => {
+                                const layeredSchedules = calculateScheduleLayers(longSchedules, days);
+                                const maxLayersPerRow = getMaxLayersPerRow(layeredSchedules);
                                 
-                                return (
-                                    <div 
-                                        key={index}
-                                        className={`flex items-center justify-center rounded-full text-md day-selectable ${day.isCurrentMonth ? 'text-white' : 'text-white opacity-30'} ${day.fullDate === todayDateStr ? 'bg-white bg-opacity-25' : ''} ${isSelected ? 'day-selected' : ''} ${isSelecting ? 'day-selecting' : ''}`}
-                                        style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                                            animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none'
-                                        }}
-                                        onClick={() => handleDayClick(day)}
-                                    >
-                                        {day.date}
-                                    </div>
-                                );
-                            })}
-                            
-                            {/* 保存された長期スケジュールバーの表示 */}
-                            {Object.values(longSchedules).map(schedule => {
-                                const bars = [];
-                                let currentStart = null;
-                                let currentEnd = null;
-                                
-                                // スケジュールの日付をソート
-                                const sortedDays = schedule.days.sort();
-                                
-                                for (let i = 0; i < sortedDays.length; i++) {
-                                    const dayIndex = days.slice(0, 35).findIndex(d => d.fullDate === sortedDays[i]);
-                                    if (dayIndex === -1) continue;
+                                return days.slice(0, 35).map((day, index) => {
+                                    const isSelected = selectedDays.some(d => d.fullDate === day.fullDate);
+                                    const isSelecting = longScheduleMode && selectedDays.length === 1;
                                     
-                                    if (currentStart === null) {
-                                        currentStart = dayIndex;
-                                        currentEnd = dayIndex;
-                                    } else if (dayIndex === currentEnd + 1) {
-                                        currentEnd = dayIndex;
-                                    } else {
-                                        bars.push({ start: currentStart, end: currentEnd });
-                                        currentStart = dayIndex;
-                                        currentEnd = dayIndex;
-                                    }
-                                }
+                                    const row = Math.floor(index / 7);
+                                    const dynamicHeight = calculateRowHeight(row, maxLayersPerRow);
+                                    
+                                    return (
+                                        <div 
+                                            key={index}
+                                            className={`flex items-center justify-center rounded-full text-md day-selectable ${day.isCurrentMonth ? 'text-white' : 'text-white opacity-30'} ${day.fullDate === todayDateStr ? 'bg-white bg-opacity-25' : ''} ${isSelected ? 'day-selected' : ''} ${isSelecting ? 'day-selecting' : ''}`}
+                                            style={{
+                                                width: '40px',
+                                                height: `${dynamicHeight}px`,
+                                                cursor: day.isCurrentMonth ? 'pointer' : 'default',
+                                                animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none',
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                paddingTop: '8px'
+                                            }}
+                                            onClick={() => handleDayClick(day)}
+                                        >
+                                            {day.date}
+                                        </div>
+                                    );
+                                });
+                            })()}
+                            
+                            {/* 保存された長期スケジュールバーの表示（レイヤー対応） */}
+                            {(() => {
+                                const layeredSchedules = calculateScheduleLayers(longSchedules, days);
+                                const maxLayersPerRow = getMaxLayersPerRow(layeredSchedules);
                                 
-                                if (currentStart !== null) {
-                                    bars.push({ start: currentStart, end: currentEnd });
-                                }
-                                
-                                return bars.map((bar, idx) => {
+                                return layeredSchedules.map((item, index) => {
+                                    const { schedule, bar, barIdx, row, layer } = item;
                                     const startRow = Math.floor(bar.start / 7);
                                     const endRow = Math.floor(bar.end / 7);
                                     const startCol = bar.start % 7;
                                     const endCol = bar.end % 7;
                                     
+                                    // 累積の行オフセット計算
+                                    let cumulativeOffset = 0;
+                                    for (let r = 0; r < startRow; r++) {
+                                        cumulativeOffset += calculateRowHeight(r, maxLayersPerRow) - 48;
+                                    }
+                                    
+                                    const barHeight = 3;
+                                    const barSpacing = 6;
+                                    const layerOffset = layer * (barHeight + barSpacing);
+                                    
                                     if (startRow === endRow) {
                                         return (
                                             <div
-                                                key={`saved-bar-${schedule.id}-${idx}`}
+                                                key={`saved-bar-${schedule.id}-${barIdx}-${layer}`}
                                                 className="long-schedule-bar"
                                                 style={{
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
-                                                    top: `${startRow * 48 + 35}px`,
+                                                    top: `${startRow * 48 + 35 + cumulativeOffset + layerOffset}px`,
                                                     cursor: 'pointer'
                                                 }}
                                                 title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
@@ -1638,20 +1734,26 @@
                                         );
                                     } else {
                                         const barElements = [];
-                                        for (let row = startRow; row <= endRow; row++) {
-                                            const isFirstRow = row === startRow;
-                                            const isLastRow = row === endRow;
+                                        for (let r = startRow; r <= endRow; r++) {
+                                            const isFirstRow = r === startRow;
+                                            const isLastRow = r === endRow;
                                             const left = isFirstRow ? startCol : 0;
                                             const right = isLastRow ? endCol : 6;
                                             
+                                            // 各行の累積オフセット計算
+                                            let rowCumulativeOffset = 0;
+                                            for (let ro = 0; ro < r; ro++) {
+                                                rowCumulativeOffset += calculateRowHeight(ro, maxLayersPerRow) - 48;
+                                            }
+                                            
                                             barElements.push(
                                                 <div
-                                                    key={`saved-bar-${schedule.id}-${idx}-${row}`}
+                                                    key={`saved-bar-${schedule.id}-${barIdx}-${r}-${layer}`}
                                                     className="long-schedule-bar"
                                                     style={{
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
-                                                        top: `${row * 48 + 35}px`,
+                                                        top: `${r * 48 + 35 + rowCumulativeOffset + layerOffset}px`,
                                                         cursor: 'pointer'
                                                     }}
                                                     title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
@@ -1662,7 +1764,7 @@
                                         return barElements;
                                     }
                                 });
-                            })}
+                            })()}
                             
                             {/* 選択中の長期スケジュールバーの表示 */}
                             {selectedDays.length > 1 && (() => {
