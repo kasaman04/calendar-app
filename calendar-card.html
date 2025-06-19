@@ -136,6 +136,80 @@
         .schedule-detail-modal.active .schedule-detail-container {
             transform: scale(1);
         }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .close-button {
+            background: #d1d5db;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            transition: all 0.2s ease;
+        }
+        
+        .close-button:hover {
+            background: #9ca3af;
+            color: #333;
+        }
+        
+        .modal-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+            margin-top: 0;
+        }
+        
+        .schedule-details {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+        }
+        
+        .details-title {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .schedule-icon {
+            width: 12px;
+            height: 12px;
+            background: #f59e0b;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .schedule-text {
+            flex: 1;
+        }
         
         /* 入力フィールド強制スタイル - TailwindCSS競合回避 */
         input[type="text"], textarea {
@@ -445,7 +519,47 @@
             const [longSchedules, setLongSchedules] = useState({});
             const [showLongScheduleModal, setShowLongScheduleModal] = useState(false);
             // 長期スケジュール入力は非制御コンポーネントで管理（window.longScheduleTitleInput, window.longScheduleMemoInput）
+            
+            // スケジュール詳細モーダル関連の状態
+            const [showScheduleDetailModal, setShowScheduleDetailModal] = useState(false);
+            const [scheduleDetailData, setScheduleDetailData] = useState(null);
 
+            // localStorage からの長期スケジュール読み込み
+            React.useEffect(() => {
+                try {
+                    const savedSchedules = localStorage.getItem('longSchedules');
+                    if (savedSchedules) {
+                        const schedules = JSON.parse(savedSchedules);
+                        setLongSchedules(schedules);
+                        console.log('長期スケジュールを読み込みました:', schedules);
+                    }
+                } catch (error) {
+                    console.error('長期スケジュール読み込みエラー:', error);
+                }
+            }, []);
+
+            // スケジュール詳細を表示する関数
+            const showScheduleDetails = (schedule) => {
+                console.log('showScheduleDetails called with:', schedule);
+                setScheduleDetailData(schedule);
+                setShowScheduleDetailModal(true);
+            };
+
+            const closeScheduleDetailModal = () => {
+                setShowScheduleDetailModal(false);
+                setScheduleDetailData(null);
+            };
+
+            // 日付範囲のテキストを生成する関数
+            const getDayRangeText = (schedule) => {
+                if (!schedule || !schedule.days || schedule.days.length === 0) return '';
+                const sortedDays = [...schedule.days].sort();
+                const startDate = new Date(sortedDays[0]);
+                const endDate = new Date(sortedDays[sortedDays.length - 1]);
+                const startDay = startDate.getDate();
+                const endDay = endDate.getDate();
+                return startDay === endDay ? `${startDay}日の予定` : `${startDay}～${endDay}日の予定`;
+            };
 
             const openLongScheduleModal = () => {
                 // 入力フィールドをクリア
@@ -510,10 +624,19 @@
                 
                 console.log('長期スケジュールを保存:', scheduleData);
                 
-                setLongSchedules(prev => ({
-                    ...prev,
+                const updatedSchedules = {
+                    ...longSchedules,
                     [scheduleId]: scheduleData
-                }));
+                };
+                setLongSchedules(updatedSchedules);
+                
+                // localStorage に保存
+                try {
+                    localStorage.setItem('longSchedules', JSON.stringify(updatedSchedules));
+                    console.log('長期スケジュールをlocalStorageに保存しました');
+                } catch (error) {
+                    console.error('長期スケジュール保存エラー:', error);
+                }
                 
                 setShowLongScheduleModal(false);
                 exitLongScheduleMode();
@@ -1424,13 +1547,10 @@
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
                                                     top: `${startRow * 48 + 35}px`,
-                                                    cursor: 'pointer',
+                                                    cursor: 'pointer'
                                                 }}
                                                 title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    alert(`スケジュール: ${schedule.title}`);
-                                                }}
+                                                onClick={() => showScheduleDetails(schedule)}
                                             />
                                         );
                                     } else {
@@ -1449,13 +1569,10 @@
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
                                                         top: `${row * 48 + 35}px`,
-                                                        cursor: 'pointer',
+                                                        cursor: 'pointer'
                                                     }}
                                                     title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        alert(`スケジュール: ${schedule.title}`);
-                                                    }}
+                                                    onClick={() => showScheduleDetails(schedule)}
                                                 />
                                             );
                                         }
@@ -2143,6 +2260,38 @@
                             </div>
                         </div>
                     )}
+
+                    {/* スケジュール詳細モーダル */}
+                    {showScheduleDetailModal && scheduleDetailData && (
+                        <div className={`schedule-detail-modal ${showScheduleDetailModal ? 'active' : ''}`}>
+                            <div className="schedule-detail-container">
+                                <div className="modal-header">
+                                    <h3 className="modal-title">{getDayRangeText(scheduleDetailData)}</h3>
+                                    <button className="close-button" onClick={closeScheduleDetailModal}>
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <div className="schedule-details">
+                                    <h4 className="details-title">{scheduleDetailData.title}</h4>
+                                    {scheduleDetailData.memo && (
+                                        <p style={{ 
+                                            fontSize: '14px', 
+                                            color: '#666', 
+                                            lineHeight: '1.5',
+                                            margin: '0 0 16px 0',
+                                            padding: '12px',
+                                            background: '#f9fafb',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e5e7eb'
+                                        }}>
+                                            {scheduleDetailData.memo}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -2244,34 +2393,6 @@
                 return { images };
             };
 
-            // スケジュール詳細表示関数（Phase 2: エラーハンドリング強化）
-            const showScheduleDetails = (schedule, dayIndex) => {
-                try {
-                    // 安全なデータチェック
-                    const safeSchedule = schedule || {};
-                    const safeTitle = safeSchedule.title || 'スケジュール';
-                    
-                    setScheduleDetailData({
-                        date: '23日',
-                        title: safeTitle
-                    });
-                    setShowScheduleDetailModal(true);
-                } catch (error) {
-                    console.error('スケジュール詳細表示エラー:', error);
-                    // フォールバック: エラー時もモーダル表示
-                    try {
-                        setScheduleDetailData({
-                            date: '予定',
-                            title: 'スケジュール'
-                        });
-                        setShowScheduleDetailModal(true);
-                    } catch (fallbackError) {
-                        console.error('フォールバック表示エラー:', fallbackError);
-                        // 最終フォールバック: アラート表示
-                        alert('予定の詳細を表示できませんでした');
-                    }
-                }
-            };
 
             const handlePrevMonth = () => {
                 if (currentMonthIndex === 0) {
