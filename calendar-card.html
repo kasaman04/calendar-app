@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calendar Card UI</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'baloo': ['Baloo 2', 'cursive'],
+                        'comfortaa': ['Comfortaa', 'sans-serif'],
+                        'varela': ['Varela Round', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body {
+            font-family: 'Comfortaa', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #3182CE;
+            width: 100%;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: scroll;
+        }
+        
+        /* 長期スケジュール関連のスタイル */
+        .long-schedule-mode {
+            position: relative;
+        }
+        
+        .long-schedule-bar {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            border-radius: 2px;
+            z-index: 2;
+            bottom: 4px !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .day-selectable {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .day-selecting {
+            background-color: rgba(251, 191, 36, 0.3) !important;
+        }
+        
+        .day-selected {
+            background-color: rgba(251, 191, 36, 0.5) !important;
+        }
+        
+        .long-schedule-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .long-schedule-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .long-schedule-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .long-schedule-modal.active .long-schedule-container {
+            transform: scale(1);
+        }
+
+        /* スケジュール詳細モーダルのスタイル */
+        .schedule-detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .schedule-detail-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .schedule-detail-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .schedule-detail-modal.active .schedule-detail-container {
+            transform: scale(1);
+        }
+        
+        /* 入力フィールド強制スタイル - TailwindCSS競合回避 */
+        input[type="text"], textarea {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            background-color: white !important;
+            color: black !important;
+            border: 1px solid rgb(229, 231, 235) !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            font-size: 14px !important;
+            font-family: inherit !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            -webkit-touch-callout: default !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        /* ボタン強制スタイル - TailwindCSS競合回避 */
+        button {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            -webkit-tap-highlight-color: transparent !important;
+            border: none !important;
+            outline: none !important;
+            font-family: inherit !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
+        
+        /* Force mobile viewport */
+        @media screen and (min-width: 768px) {
+            html, body {
+                background: #f0f0f0;
+                overflow-y: scroll;
+            }
+            
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                min-height: 100vh;
+                padding: 20px 0;
+            }
+            
+            #root {
+                width: 375px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                border: 2px solid #333;
+            }
+        }
+        
+        .arch-photo {
+            border-top-left-radius: 50%;
+            border-top-right-radius: 50%;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .nav-arrow {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: color 0.2s;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            padding: 12px;
+        }
+        
+        .nav-arrow:hover {
+            color: white;
+        }
+        
+        .prev-arrow {
+            left: 16px;
+        }
+        
+        .next-arrow {
+            right: 16px;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), inset 0 0 5px rgba(255, 255, 255, 0.5);
+            }
+            100% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.7), inset 0 0 3px rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        /* 4時間分割バーのスタイル */
+        .time-bar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .time-bar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .time-bar-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .time-bar-overlay.active .time-bar-container {
+            transform: scale(1);
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .time-slot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 16px 12px;
+            color: white;
+            font-family: 'Comfortaa', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .time-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .time-slot:active {
+            transform: translateY(0);
+        }
+
+        .time-slot::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .time-slot:hover::before {
+            left: 100%;
+        }
+
+        .time-slot-0 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .time-slot-4 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .time-slot-8 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .time-slot-12 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .time-slot-16 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .time-slot-20 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #666;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
+
+        .date-title {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+            font-family: 'Baloo 2', cursive;
+        }
+
+        .date-subtitle {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const MONTHS = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const WEEKDAYS_SHORT = ['日', '月', '火', '水', '木', '金', '土'];
+
+        const generateCalendarDays = (year, month) => {
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const days = [];
+            const current = new Date(startDate);
+            
+            for (let i = 0; i < 42; i++) {
+                days.push({
+                    date: current.getDate(),
+                    isCurrentMonth: current.getMonth() === month,
+                    fullDate: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`
+                });
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return days;
+        };
+
+        const getMonthImage = (month) => {
+            const images = [
+                'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=180&fit=crop', // January - Winter flowers
+                'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=180&fit=crop', // February - Pink flowers
+                'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=180&fit=crop', // March - Spring blooms
+                'https://images.unsplash.com/photo-1563789031959-4c53abc684c3?w=400&h=180&fit=crop', // April - Cherry blossoms
+                'https://images.unsplash.com/photo-1592062644994-6fc4faf8e8c2?w=400&h=180&fit=crop', // May - Roses
+                'https://images.unsplash.com/photo-1597848212624-e6421bb98fb6?w=400&h=180&fit=crop', // June - Summer flowers
+                'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=400&h=180&fit=crop', // July - Sunflowers
+                'https://images.unsplash.com/photo-1566146991569-696da38bb775?w=400&h=180&fit=crop', // August - Lavender
+                'https://images.unsplash.com/photo-1601985705806-5b2e9b3b71b4?w=400&h=180&fit=crop', // September - Autumn flowers
+                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=180&fit=crop', // October - Fall blooms
+                'https://images.unsplash.com/photo-1606041008023-472dfb5e530f?w=400&h=180&fit=crop', // November - Dried flowers
+                'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=180&fit=crop'  // December - Winter arrangements
+            ];
+            return images[month] || images[0];
+        };
+
+
+        const Calendar = ({ year, month, monthName, onPrevMonth, onNextMonth, monthData, isUploading, onPhotoClick }) => {
+            const days = generateCalendarDays(year, month);
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [showTimeBar, setShowTimeBar] = useState(false);
+            const [timeSlots, setTimeSlots] = useState({});
+            const [showActivityMenu, setShowActivityMenu] = useState(false);
+            const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
+            const [showScheduleList, setShowScheduleList] = useState(false);
+            const [showPhotoArea, setShowPhotoArea] = useState(true);
+            const [showHideConfirm, setShowHideConfirm] = useState(false);
+            const [selectedActivity, setSelectedActivity] = useState(null);
+            const [activityMemos, setActivityMemos] = useState({});
+            
+            // 長期スケジュール関連の状態
+            const [longScheduleMode, setLongScheduleMode] = useState(false);
+            const [selectedDays, setSelectedDays] = useState([]);
+            const [isSelecting, setIsSelecting] = useState(false);
+            const [longSchedules, setLongSchedules] = useState({});
+            const [showLongScheduleModal, setShowLongScheduleModal] = useState(false);
+            // 長期スケジュール入力は非制御コンポーネントで管理（window.longScheduleTitleInput, window.longScheduleMemoInput）
+
+
+            const openLongScheduleModal = () => {
+                // 入力フィールドをクリア
+                setTimeout(() => {
+                    if (window.longScheduleTitleInput) window.longScheduleTitleInput.value = '';
+                    if (window.longScheduleMemoInput) window.longScheduleMemoInput.value = '';
+                }, 100);
+                setShowLongScheduleModal(true);
+            };
+
+            // メモ変更ハンドラーを最適化（依存関係を削除）
+            const handleMemoChange = React.useCallback((activityKey, newValue) => {
+                console.log('handleMemoChange called:', activityKey, newValue, 'Length:', newValue.length);
+                setActivityMemos(prev => {
+                    const updated = {
+                        ...prev,
+                        [activityKey]: newValue
+                    };
+                    console.log('Updated activityMemos:', updated);
+                    return updated;
+                });
+                // selectedActivityの設定はonFocusに移動
+            }, []);
+
+            // デバッグ用のログ
+            React.useEffect(() => {
+                console.log('Current activityMemos state:', activityMemos);
+            }, [activityMemos]);
+            
+            // 長期スケジュール関連のハンドラー
+            const startLongScheduleMode = () => {
+                setLongScheduleMode(true);
+                setSelectedDays([]);
+            };
+            
+            const exitLongScheduleMode = () => {
+                setLongScheduleMode(false);
+                setSelectedDays([]);
+                setIsSelecting(false);
+            };
+            
+            const saveLongSchedule = () => {
+                // 非制御コンポーネントから値を取得
+                const titleValue = window.longScheduleTitleInput?.value || '';
+                const memoValue = window.longScheduleMemoInput?.value || '';
+                
+                console.log('saveLongSchedule called', { title: titleValue, memo: memoValue });
+                if (!titleValue || !titleValue.trim()) {
+                    console.log('タイトルが空のため保存をスキップ');
+                    return;
+                }
+                
+                const scheduleId = Date.now().toString();
+                const scheduleData = {
+                    id: scheduleId,
+                    title: titleValue.trim(),
+                    memo: memoValue.trim(),
+                    startDate: selectedDays[0]?.fullDate,
+                    endDate: selectedDays[selectedDays.length - 1]?.fullDate,
+                    days: selectedDays.map(d => d.fullDate)
+                };
+                
+                console.log('長期スケジュールを保存:', scheduleData);
+                
+                setLongSchedules(prev => ({
+                    ...prev,
+                    [scheduleId]: scheduleData
+                }));
+                
+                setShowLongScheduleModal(false);
+                exitLongScheduleMode();
+            };
+            
+            const handleLongScheduleDayClick = (day) => {
+                if (!day.isCurrentMonth) return;
+                
+                if (selectedDays.length === 0) {
+                    // 最初の日を選択
+                    setSelectedDays([day]);
+                    setIsSelecting(true);
+                } else if (selectedDays.length === 1) {
+                    // 2番目の日を選択して期間を確定
+                    const firstDay = selectedDays[0];
+                    const daysBetween = getDaysBetween(firstDay, day);
+                    setSelectedDays(daysBetween);
+                    setIsSelecting(false);
+                    // モーダルを開く
+                    openLongScheduleModal();
+                }
+            };
+            
+            const getDaysBetween = (startDay, endDay) => {
+                const start = new Date(startDay.fullDate);
+                const end = new Date(endDay.fullDate);
+                if (start > end) [start, end] = [end, start];
+                
+                const days = [];
+                const current = new Date(start);
+                while (current <= end) {
+                    const dayData = {
+                        date: current.getDate(),
+                        isCurrentMonth: current.getMonth() === month,
+                        fullDate: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`
+                    };
+                    days.push(dayData);
+                    current.setDate(current.getDate() + 1);
+                }
+                return days;
+            };
+            
+            // 日付クリック時の処理
+            const handleDayClick = (day) => {
+                if (longScheduleMode) {
+                    handleLongScheduleDayClick(day);
+                } else if (day.isCurrentMonth) {
+                    setSelectedDate(day);
+                    setShowTimeBar(true);
+                }
+            };
+
+            // タイムバーを閉じる
+            const closeTimeBar = () => {
+                setShowTimeBar(false);
+                setSelectedDate(null);
+                setShowActivityMenu(false);
+                setSelectedSlotIndex(null);
+                setSelectedActivity(null);
+                setActivityMemos({});
+            };
+
+            // タイムスロットクリック時の処理
+            const handleSlotClick = (slotIndex) => {
+                const dateKey = selectedDate?.fullDate;
+                const currentActivity = timeSlots[`${dateKey}-${slotIndex}`];
+                
+                if (currentActivity) {
+                    // 既に予定が入っている場合はリセット
+                    setTimeSlots(prev => {
+                        const newSlots = { ...prev };
+                        delete newSlots[`${dateKey}-${slotIndex}`];
+                        return newSlots;
+                    });
+                } else {
+                    // 予定が入っていない場合は選択メニューを表示
+                    setSelectedSlotIndex(slotIndex);
+                    setSelectedActivity(null);
+                    setActivityMemos({});
+                    setShowActivityMenu(true);
+                }
+            };
+
+            // 活動選択時の処理（第1段階：活動タイプ選択）
+            const handleActivitySelect = (activity) => {
+                setSelectedActivity(activity);
+            };
+
+            // メモ確定時の処理（第2段階：メモ入力完了）
+            const handleMemoSubmit = () => {
+                const dateKey = selectedDate?.fullDate;
+                if (dateKey && selectedSlotIndex !== null && selectedActivity) {
+                    setTimeSlots(prev => ({
+                        ...prev,
+                        [`${dateKey}-${selectedSlotIndex}`]: {
+                            type: selectedActivity,
+                            memo: (activityMemos[selectedActivity] || '').trim()
+                        }
+                    }));
+                }
+                setShowActivityMenu(false);
+                setSelectedSlotIndex(null);
+                setSelectedActivity(null);
+                setActivityMemos({});
+            };
+
+            // スロットの色を取得
+            const getSlotColor = (slotIndex) => {
+                const dateKey = selectedDate?.fullDate;
+                const activity = timeSlots[`${dateKey}-${slotIndex}`];
+                const colors = {
+                    work: '#ff9a9e',    // 可愛いピンク
+                    rest: '#a8e6cf',    // 優しいミントグリーン
+                    outing: '#ffd3a5',  // 温かいピーチ
+                    study: '#c7ceea'    // 柔らかいラベンダー
+                };
+                return activity ? colors[activity.type || activity] : 'transparent';
+            };
+
+            // TimeBar24 コンポーネント（インライン実装）
+            const TimeLabel = ({ index, text }) => (
+                React.createElement('span', {
+                    className: 'absolute text-sm font-medium text-gray-800',
+                    style: { 
+                        left: `${(index / 6) * 100}%`, 
+                        transform: 'translateX(-50%)',
+                        top: '100%',
+                        marginTop: '4px'
+                    }
+                }, text)
+            );
+
+            const TimeBar24 = () => (
+                React.createElement('div', { 
+                    className: 'relative w-full',
+                    style: { marginBottom: '8px' }
+                }, [
+                    // メインのタイムバー
+                    React.createElement('div', {
+                        key: 'bar',
+                        className: 'grid grid-cols-6 gap-0',
+                        style: {
+                            height: '12px',
+                            borderRadius: '9999px',
+                            border: '1px solid #343A40',
+                            backgroundColor: 'transparent'
+                        }
+                    }, Array.from({ length: 6 }, (_, index) => 
+                        React.createElement('div', {
+                            key: index,
+                            onClick: () => handleSlotClick(index),
+                            style: {
+                                height: '100%',
+                                backgroundColor: getSlotColor(index),
+                                borderRight: index < 5 ? '1px solid #343A40' : 'none',
+                                borderTopLeftRadius: index === 0 ? '9999px' : '0',
+                                borderBottomLeftRadius: index === 0 ? '9999px' : '0',
+                                borderTopRightRadius: index === 5 ? '9999px' : '0',
+                                borderBottomRightRadius: index === 5 ? '9999px' : '0',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s ease'
+                            }
+                        })
+                    )),
+                    // タイムラベル
+                    ...['4', '8', '12', '16', '20'].map((time, index) => 
+                        React.createElement(TimeLabel, {
+                            key: time,
+                            index: index + 1,
+                            text: time
+                        })
+                    )
+                ])
+            );
+
+            // 活動選択メニュー（完全に独立したコンポーネント）
+            const ActivityMenu = React.memo(() => {
+                if (!showActivityMenu) return null;
+
+                const activities = [
+                    { key: 'work', label: '仕事', color: '#ff9a9e' },
+                    { key: 'rest', label: '休み', color: '#a8e6cf' },
+                    { key: 'outing', label: '外出', color: '#ffd3a5' },
+                    { key: 'study', label: '勉強', color: '#c7ceea' }
+                ];
+
+                // ローカル状態を使用
+                const [localMemos, setLocalMemos] = React.useState({});
+                const [localSelectedActivity, setLocalSelectedActivity] = React.useState(null);
+
+                return React.createElement('div', {
+                    style: {
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+                        border: '1px solid #e5e7eb',
+                        zIndex: 1001,
+                        minWidth: '320px',
+                        maxWidth: '400px',
+                        width: '90vw'
+                    }
+                }, [
+                    React.createElement('div', {
+                        key: 'title',
+                        style: {
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            marginBottom: '16px',
+                            textAlign: 'center',
+                            color: '#333'
+                        }
+                    }, '活動を選択'),
+                    
+                    ...activities.map(activity => 
+                        React.createElement('div', {
+                            key: activity.key,
+                            style: {
+                                marginBottom: '16px'
+                            }
+                        }, [
+                            React.createElement('button', {
+                                key: 'activity-btn',
+                                onClick: () => {
+                                    if (localSelectedActivity === activity.key) {
+                                        setLocalSelectedActivity(null);
+                                    } else {
+                                        setLocalSelectedActivity(activity.key);
+                                    }
+                                },
+                                style: {
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    width: '100%',
+                                    padding: '12px',
+                                    border: localSelectedActivity === activity.key ? `2px solid ${activity.color}` : '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    background: localSelectedActivity === activity.key ? `${activity.color}20` : 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    marginBottom: '8px'
+                                }
+                            }, [
+                                React.createElement('div', {
+                                    key: 'color',
+                                    style: {
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '4px',
+                                        backgroundColor: activity.color
+                                    }
+                                }),
+                                React.createElement('span', {
+                                    key: 'label',
+                                    style: {
+                                        fontSize: '16px',
+                                        fontWeight: '500',
+                                        color: '#333'
+                                    }
+                                }, activity.label)
+                            ]),
+                            
+                            // メモ入力欄（ローカル状態を使用）
+                            React.createElement('div', {
+                                key: 'memo-section',
+                                style: {
+                                    position: 'relative'
+                                }
+                            }, [
+                                React.createElement('span', {
+                                    key: 'memo-icon',
+                                    style: {
+                                        position: 'absolute',
+                                        left: '8px',
+                                        top: '12px',
+                                        fontSize: '14px',
+                                        color: '#999',
+                                        zIndex: 1
+                                    }
+                                }, '✏️'),
+                                React.createElement('textarea', {
+                                    key: `memo-input-${activity.key}`,
+                                    placeholder: 'メモを入力（100文字まで）',
+                                    maxLength: 100,
+                                    rows: 2,
+                                    value: localMemos[activity.key] || '',
+                                    onChange: (e) => {
+                                        const newValue = e.target.value;
+                                        console.log('ローカルonChange:', activity.key, newValue);
+                                        setLocalMemos(prev => ({
+                                            ...prev,
+                                            [activity.key]: newValue
+                                        }));
+                                    },
+                                    onFocus: () => {
+                                        console.log('ローカルonFocus:', activity.key);
+                                        setLocalSelectedActivity(activity.key);
+                                    },
+                                    style: {
+                                        width: '100%',
+                                        minWidth: '200px',
+                                        padding: '8px 8px 8px 30px',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        background: '#f8f9fa',
+                                        color: '#666',
+                                        boxSizing: 'border-box',
+                                        fontFamily: 'inherit',
+                                        resize: 'none',
+                                        minHeight: '50px'
+                                    }
+                                }),
+                                React.createElement('div', {
+                                    key: 'char-count',
+                                    style: {
+                                        fontSize: '11px',
+                                        color: '#999',
+                                        textAlign: 'right',
+                                        marginTop: '2px'
+                                    }
+                                }, `${(localMemos[activity.key] || '').length}/100`)
+                            ])
+                        ])
+                    ),
+                    
+                    React.createElement('div', {
+                        key: 'buttons',
+                        style: {
+                            display: 'flex',
+                            gap: '8px',
+                            marginTop: '20px'
+                        }
+                    }, [
+                        React.createElement('button', {
+                            key: 'cancel',
+                            onClick: () => {
+                                setShowActivityMenu(false);
+                                setSelectedActivity(null);
+                                setActivityMemos({});
+                            },
+                            style: {
+                                flex: 1,
+                                padding: '10px 16px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                background: 'white',
+                                color: '#666',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }
+                        }, 'キャンセル'),
+                        React.createElement('button', {
+                            key: 'submit',
+                            onClick: () => {
+                                if (localSelectedActivity) {
+                                    // ローカル状態からグローバルに保存
+                                    const dateKey = selectedDate?.fullDate;
+                                    if (dateKey && selectedSlotIndex !== null) {
+                                        setTimeSlots(prev => ({
+                                            ...prev,
+                                            [`${dateKey}-${selectedSlotIndex}`]: {
+                                                type: localSelectedActivity,
+                                                memo: (localMemos[localSelectedActivity] || '').trim()
+                                            }
+                                        }));
+                                    }
+                                    setShowActivityMenu(false);
+                                    setSelectedSlotIndex(null);
+                                    setSelectedActivity(null);
+                                    setActivityMemos({});
+                                }
+                            },
+                            disabled: !localSelectedActivity,
+                            style: {
+                                flex: 1,
+                                padding: '10px 16px',
+                                border: 'none',
+                                borderRadius: '6px',
+                                background: localSelectedActivity ? activities.find(a => a.key === localSelectedActivity)?.color || '#4A90E2' : '#ccc',
+                                color: 'white',
+                                cursor: localSelectedActivity ? 'pointer' : 'not-allowed',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                opacity: localSelectedActivity ? 1 : 0.6
+                            }
+                        }, '完了')
+                    ])
+                ]);
+            });
+
+            // 予定が入っている日のデータを取得（現在表示中の月のみ）
+            const getScheduledDays = () => {
+                const daysWithSchedules = {};
+                const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                
+                // timeSlots から現在の月の予定のみを抽出
+                Object.keys(timeSlots).forEach(key => {
+                    const [keyYear, keyMonth, day, slotIndex] = key.split('-');
+                    const keyYearMonth = `${keyYear}-${keyMonth}`;
+                    
+                    // 現在表示中の年月と一致する場合のみ処理
+                    if (keyYearMonth === currentYearMonth) {
+                        const date = `${keyYear}-${keyMonth}-${day}`;
+                        if (!daysWithSchedules[date]) {
+                            daysWithSchedules[date] = Array(6).fill(null);
+                        }
+                        daysWithSchedules[date][parseInt(slotIndex)] = timeSlots[key];
+                    }
+                });
+
+                console.log('Current month filter:', currentYearMonth); // デバッグ用
+                console.log('timeSlots:', timeSlots); // デバッグ用
+                console.log('daysWithSchedules (filtered):', daysWithSchedules); // デバッグ用
+
+                // 日付順にソート（日付文字列で比較）
+                const result = Object.entries(daysWithSchedules)
+                    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                    .map(([date, slots]) => ({ date, slots }));
+                
+                console.log('getScheduledDays result (filtered):', result); // デバッグ用
+                console.log('result length:', result.length); // デバッグ用
+                return result;
+            };
+
+            // 個別タイムバー表示コンポーネント
+            const ScheduledDayBar = ({ date, slots }) => {
+                console.log('ScheduledDayBar rendering:', date, slots); // デバッグ用
+                
+                // 色を取得する関数
+                const getSlotColor = (slot) => {
+                    const colors = {
+                        work: '#ff9a9e',    // 可愛いピンク
+                        rest: '#a8e6cf',    // 優しいミントグリーン
+                        outing: '#ffd3a5',  // 温かいピーチ
+                        study: '#c7ceea'    // 柔らかいラベンダー
+                    };
+                    
+                    if (!slot) return 'transparent';
+                    
+                    // 新しいデータ構造（オブジェクト）の場合
+                    if (typeof slot === 'object' && slot.type) {
+                        return colors[slot.type] || 'transparent';
+                    }
+                    
+                    // 古いデータ構造（文字列）の場合
+                    if (typeof slot === 'string') {
+                        return colors[slot] || 'transparent';
+                    }
+                    
+                    return 'transparent';
+                };
+
+                return React.createElement('div', {
+                    style: {
+                        marginBottom: '12px',
+                        padding: '8px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px'
+                    }
+                }, [
+                    React.createElement('div', {
+                        key: 'date-label',
+                        style: {
+                            fontSize: '12px',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            marginBottom: '4px',
+                            textAlign: 'center'
+                        }
+                    }, `${parseInt(date.split('-')[2])}日`),
+                    React.createElement('div', {
+                        key: 'timeline',
+                        className: 'grid grid-cols-6 gap-0',
+                        style: {
+                            height: '8px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            overflow: 'hidden'
+                        }
+                    }, slots.map((slot, index) => {
+                        console.log(`Slot ${index}:`, slot); // デバッグ用
+                        return React.createElement('div', {
+                            key: index,
+                            style: {
+                                height: '100%',
+                                backgroundColor: getSlotColor(slot),
+                                borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
+                            }
+                        });
+                    }))
+                ]);
+            };
+            
+            // 今日の日付を取得
+            const today = new Date();
+            const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            // スワイプ音効果の再生
+            const playSwipeSound = () => {
+                try {
+                    const audio = new Audio('Sound/Motion-Agility12-1(High).mp3');
+                    audio.volume = 0.3; // 音量調整
+                    audio.play().catch(error => {
+                        console.log('音効果の再生に失敗しました:', error);
+                    });
+                } catch (error) {
+                    console.log('音効果の再生に失敗しました:', error);
+                }
+            };
+
+            // タッチイベントとマウスイベントを使用してスワイプ判定を実装
+            const handleTouchStart = (e, dayData) => {
+                const touch = e.touches[0];
+                const startX = touch.clientX;
+                const startY = touch.clientY;
+                const element = e.currentTarget;
+                let isSwipeActive = false;
+
+                // トランジションを無効にして滑らかな追従を実現
+                element.style.transition = 'none';
+
+                const handleTouchMove = (e) => {
+                    const touch = e.touches[0];
+                    const endX = touch.clientX;
+                    const endY = touch.clientY;
+                    const distanceX = endX - startX;
+                    const distanceY = endY - startY;
+
+                    // 水平方向のスワイプかどうかを判定
+                    if (Math.abs(distanceX) > Math.abs(distanceY) && distanceX > 10) {
+                        isSwipeActive = true;
+                        e.preventDefault(); // スクロールを防止
+                        
+                        // バーを指に付いてくるように移動（最大100pxまで）
+                        const moveDistance = Math.min(distanceX, 100);
+                        element.style.transform = `translateX(${moveDistance}px)`;
+                        
+                        // 50px以上で削除準備（背景色を赤くする）
+                        if (distanceX > 50) {
+                            element.style.background = 'rgba(239, 68, 68, 0.6)';
+                        } else {
+                            element.style.background = 'rgba(255, 255, 255, 0.25)';
+                        }
+                    }
+                };
+
+                const handleTouchEnd = (e) => {
+                    const touch = e.changedTouches[0];
+                    const endX = touch.clientX;
+                    const distanceX = endX - startX;
+
+                    if (isSwipeActive && distanceX > 50) {
+                        // 削除実行
+                        handleSwipeDelete(dayData, element);
+                    } else {
+                        // 元の位置に戻す
+                        element.style.transition = 'transform 0.3s ease-out, background 0.3s ease-out';
+                        element.style.transform = 'translateX(0)';
+                        element.style.background = 'rgba(255, 255, 255, 0.15)';
+                    }
+
+                    document.removeEventListener('touchmove', handleTouchMove);
+                    document.removeEventListener('touchend', handleTouchEnd);
+                };
+
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                document.addEventListener('touchend', handleTouchEnd);
+            };
+
+            const handleMouseDown = (e, dayData) => {
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const element = e.currentTarget;
+                let isSwipeActive = false;
+
+                // トランジションを無効にして滑らかな追従を実現
+                element.style.transition = 'none';
+
+                const handleMouseMove = (e) => {
+                    const endX = e.clientX;
+                    const endY = e.clientY;
+                    const distanceX = endX - startX;
+                    const distanceY = endY - startY;
+
+                    // 水平方向のスワイプかどうかを判定
+                    if (Math.abs(distanceX) > Math.abs(distanceY) && distanceX > 10) {
+                        isSwipeActive = true;
+                        
+                        // バーを指に付いてくるように移動（最大100pxまで）
+                        const moveDistance = Math.min(distanceX, 100);
+                        element.style.transform = `translateX(${moveDistance}px)`;
+                        
+                        // 50px以上で削除準備（背景色を赤くする）
+                        if (distanceX > 50) {
+                            element.style.background = 'rgba(239, 68, 68, 0.6)';
+                        } else {
+                            element.style.background = 'rgba(255, 255, 255, 0.25)';
+                        }
+                    }
+                };
+
+                const handleMouseUp = (e) => {
+                    const endX = e.clientX;
+                    const distanceX = endX - startX;
+
+                    if (isSwipeActive && distanceX > 50) {
+                        // 削除実行
+                        handleSwipeDelete(dayData, element);
+                    } else {
+                        // 元の位置に戻す
+                        element.style.transition = 'transform 0.3s ease-out, background 0.3s ease-out';
+                        element.style.transform = 'translateX(0)';
+                        element.style.background = 'rgba(255, 255, 255, 0.15)';
+                    }
+
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            };
+
+            // スワイプ削除のための関数
+            const handleSwipeDelete = (dayData, element) => {
+                // スワイプ音効果を再生
+                playSwipeSound();
+                
+                // 削除アニメーション：右にスライドしながらフェードアウト
+                element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                element.style.transform = 'translateX(100%)';
+                element.style.opacity = '0';
+                
+                console.log('右スワイプ削除を実行します:', dayData.date);
+                
+                // アニメーション完了後に削除処理
+                setTimeout(() => {
+                    // この日の予定をすべて削除
+                    setTimeSlots(prev => {
+                        const newSlots = { ...prev };
+                        Object.keys(newSlots).forEach(key => {
+                            if (key.includes(dayData.date)) {
+                                delete newSlots[key];
+                            }
+                        });
+                        console.log('更新されたスロット:', newSlots);
+                        return newSlots;
+                    });
+                }, 300);
+            };
+
+            // 写真エリア非表示確認処理
+            const handleHidePhotoArea = () => {
+                setShowHideConfirm(true);
+            };
+
+            const confirmHidePhotoArea = () => {
+                setShowPhotoArea(false);
+                setShowHideConfirm(false);
+            };
+
+            const cancelHidePhotoArea = () => {
+                setShowHideConfirm(false);
+            };
+
+            return (
+                <div className="w-full flex flex-col text-white font-comfortaa" style={{ backgroundColor: '#3182CE', maxWidth: '400px', margin: '0 auto', minHeight: '100vh' }}>
+                    {/* Photo area - single layout only */}
+                    {showPhotoArea && (
+                        <div className="relative w-full flex items-end justify-center" style={{ height: '248px', paddingBottom: '0px' }}>
+                        <div 
+                            style={{
+                                width: '280px',
+                                height: '200px',
+                                backgroundImage: monthData.images && monthData.images[0] ? `url(${monthData.images[0].dataUrl})` : `url(${getMonthImage(month)})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                borderRadius: '16px',
+                                cursor: 'pointer',
+                                border: '2px solid rgba(255, 255, 255, 0.3)',
+                                position: 'relative'
+                            }}
+                            onClick={() => onPhotoClick(0)}
+                        >
+                            {(!monthData.images || !monthData.images[0]) && !isUploading && (
+                                <>
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        background: 'rgba(0, 0, 0, 0.3)',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '32px',
+                                        borderRadius: '16px'
+                                    }}>
+                                        📷
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleHidePhotoArea();
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '8px',
+                                            right: '8px',
+                                            width: '24px',
+                                            height: '24px',
+                                            borderRadius: '50%',
+                                            background: 'rgba(255, 255, 255, 0.9)',
+                                            border: 'none',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            zIndex: 10,
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                        
+                        {/* アップロード中のオーバーレイ */}
+                        {isUploading && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '20px',
+                                right: '20px',
+                                background: 'rgba(0, 0, 0, 0.7)',
+                                color: 'white',
+                                padding: '8px 12px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                            }}>
+                                処理中...
+                            </div>
+                        )}
+                        </div>
+                    )}
+
+                    {/* Month title with navigation - larger size */}
+                    <div className="relative text-center mb-3 px-4" style={{ height: '15vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                            onClick={onPrevMonth}
+                            className="nav-arrow prev-arrow"
+                            style={{ fontSize: '28px' }}
+                        >
+                            ‹
+                        </button>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', margin: '0 30px' }}>
+                            <div style={{ 
+                                fontSize: '4rem', 
+                                fontWeight: '900', 
+                                color: 'white',
+                                fontFamily: 'Baloo 2, cursive',
+                                lineHeight: '1'
+                            }}>
+                                {month + 1}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <div style={{ 
+                                    fontSize: '1.5rem', 
+                                    fontWeight: '700', 
+                                    color: 'white',
+                                    fontFamily: 'Baloo 2, cursive',
+                                    letterSpacing: '2px',
+                                    lineHeight: '1.2'
+                                }}>
+                                    {monthName.toUpperCase()}
+                                </div>
+                                <div style={{ 
+                                    fontSize: '1rem', 
+                                    fontWeight: '500', 
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    fontFamily: 'Baloo 2, cursive',
+                                    letterSpacing: '1px'
+                                }}>
+                                    {year}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button 
+                            onClick={onNextMonth}
+                            className="nav-arrow next-arrow"
+                            style={{ fontSize: '28px' }}
+                        >
+                            ›
+                        </button>
+                        
+                        {/* 長期スケジュールボタン */}
+                        <button
+                            onClick={longScheduleMode ? exitLongScheduleMode : startLongScheduleMode}
+                            style={{
+                                position: 'absolute',
+                                bottom: '10px',
+                                right: '16px',
+                                background: longScheduleMode ? '#f59e0b' : 'rgba(255, 255, 255, 0.2)',
+                                border: 'none',
+                                borderRadius: '20px',
+                                padding: '8px 12px',
+                                color: 'white',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            {longScheduleMode ? '期間選択終了' : '期間選択'}
+                        </button>
+                    </div>
+
+                    {/* Calendar grid - 40% of screen */}
+                    <div className="pb-6 flex flex-col items-center" style={{ marginTop: '-8px', flex: '0 0 auto' }}>
+                        {/* Weekday headers - larger size */}
+                        <div className="grid grid-cols-7 gap-0 mb-4 w-full" style={{maxWidth: '280px', margin: '0 auto'}}>
+                            {WEEKDAYS_SHORT.map((day, index) => (
+                                <div key={index} className="text-center text-sm font-normal text-white opacity-60 py-2 font-varela"
+                                     style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                                    {day}
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* Calendar days - larger size */}
+                        <div className="grid grid-cols-7 gap-0 gap-y-2 w-full long-schedule-mode" style={{maxWidth: '280px', margin: '0 auto', position: 'relative'}}>
+                            {days.slice(0, 35).map((day, index) => {
+                                const isSelected = selectedDays.some(d => d.fullDate === day.fullDate);
+                                const isSelecting = longScheduleMode && selectedDays.length === 1;
+                                
+                                return (
+                                    <div 
+                                        key={index}
+                                        className={`flex items-center justify-center rounded-full text-md day-selectable ${day.isCurrentMonth ? 'text-white' : 'text-white opacity-30'} ${day.fullDate === todayDateStr ? 'bg-white bg-opacity-25' : ''} ${isSelected ? 'day-selected' : ''} ${isSelecting ? 'day-selecting' : ''}`}
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            cursor: day.isCurrentMonth ? 'pointer' : 'default',
+                                            animation: day.fullDate === todayDateStr ? 'pulse 2s infinite' : 'none'
+                                        }}
+                                        onClick={() => handleDayClick(day)}
+                                    >
+                                        {day.date}
+                                    </div>
+                                );
+                            })}
+                            
+                            {/* 保存された長期スケジュールバーの表示 */}
+                            {Object.values(longSchedules).map(schedule => {
+                                const bars = [];
+                                let currentStart = null;
+                                let currentEnd = null;
+                                
+                                // スケジュールの日付をソート
+                                const sortedDays = schedule.days.sort();
+                                
+                                for (let i = 0; i < sortedDays.length; i++) {
+                                    const dayIndex = days.slice(0, 35).findIndex(d => d.fullDate === sortedDays[i]);
+                                    if (dayIndex === -1) continue;
+                                    
+                                    if (currentStart === null) {
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    } else if (dayIndex === currentEnd + 1) {
+                                        currentEnd = dayIndex;
+                                    } else {
+                                        bars.push({ start: currentStart, end: currentEnd });
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    }
+                                }
+                                
+                                if (currentStart !== null) {
+                                    bars.push({ start: currentStart, end: currentEnd });
+                                }
+                                
+                                return bars.map((bar, idx) => {
+                                    const startRow = Math.floor(bar.start / 7);
+                                    const endRow = Math.floor(bar.end / 7);
+                                    const startCol = bar.start % 7;
+                                    const endCol = bar.end % 7;
+                                    
+                                    if (startRow === endRow) {
+                                        return (
+                                            <div
+                                                key={`saved-bar-${schedule.id}-${idx}`}
+                                                className="long-schedule-bar"
+                                                style={{
+                                                    left: `${(startCol / 7) * 100}%`,
+                                                    width: `${((endCol - startCol + 1) / 7) * 100}%`,
+                                                    top: `${startRow * 48 + 35}px`,
+                                                    cursor: 'pointer',
+                                                }}
+                                                title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    alert(`スケジュール: ${schedule.title}`);
+                                                }}
+                                            />
+                                        );
+                                    } else {
+                                        const barElements = [];
+                                        for (let row = startRow; row <= endRow; row++) {
+                                            const isFirstRow = row === startRow;
+                                            const isLastRow = row === endRow;
+                                            const left = isFirstRow ? startCol : 0;
+                                            const right = isLastRow ? endCol : 6;
+                                            
+                                            barElements.push(
+                                                <div
+                                                    key={`saved-bar-${schedule.id}-${idx}-${row}`}
+                                                    className="long-schedule-bar"
+                                                    style={{
+                                                        left: `${(left / 7) * 100}%`,
+                                                        width: `${((right - left + 1) / 7) * 100}%`,
+                                                        top: `${row * 48 + 35}px`,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        alert(`スケジュール: ${schedule.title}`);
+                                                    }}
+                                                />
+                                            );
+                                        }
+                                        return barElements;
+                                    }
+                                });
+                            })}
+                            
+                            {/* 選択中の長期スケジュールバーの表示 */}
+                            {selectedDays.length > 1 && (() => {
+                                // 選択された日付の範囲に基づいてバーを描画
+                                const bars = [];
+                                let currentStart = null;
+                                let currentEnd = null;
+                                
+                                // 連続する日付をグループ化してバーを作成
+                                for (let i = 0; i < selectedDays.length; i++) {
+                                    const day = selectedDays[i];
+                                    const dayIndex = days.slice(0, 35).findIndex(d => d.fullDate === day.fullDate);
+                                    
+                                    if (dayIndex === -1) continue;
+                                    
+                                    if (currentStart === null) {
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    } else if (dayIndex === currentEnd + 1) {
+                                        currentEnd = dayIndex;
+                                    } else {
+                                        // 新しいバーを作成
+                                        bars.push({ start: currentStart, end: currentEnd });
+                                        currentStart = dayIndex;
+                                        currentEnd = dayIndex;
+                                    }
+                                }
+                                
+                                if (currentStart !== null) {
+                                    bars.push({ start: currentStart, end: currentEnd });
+                                }
+                                
+                                return bars.map((bar, idx) => {
+                                    const startRow = Math.floor(bar.start / 7);
+                                    const endRow = Math.floor(bar.end / 7);
+                                    const startCol = bar.start % 7;
+                                    const endCol = bar.end % 7;
+                                    
+                                    if (startRow === endRow) {
+                                        // 同じ行内のバー
+                                        return (
+                                            <div
+                                                key={`bar-${idx}`}
+                                                className="long-schedule-bar"
+                                                style={{
+                                                    left: `${(startCol / 7) * 100}%`,
+                                                    width: `${((endCol - startCol + 1) / 7) * 100}%`,
+                                                    top: `${startRow * 48 + 35}px`,
+                                                }}
+                                            />
+                                        );
+                                    } else {
+                                        // 複数行にまたがるバー
+                                        const barElements = [];
+                                        for (let row = startRow; row <= endRow; row++) {
+                                            const isFirstRow = row === startRow;
+                                            const isLastRow = row === endRow;
+                                            const left = isFirstRow ? startCol : 0;
+                                            const right = isLastRow ? endCol : 6;
+                                            
+                                            barElements.push(
+                                                <div
+                                                    key={`bar-${idx}-${row}`}
+                                                    className="long-schedule-bar"
+                                                    style={{
+                                                        left: `${(left / 7) * 100}%`,
+                                                        width: `${((right - left + 1) / 7) * 100}%`,
+                                                        top: `${row * 48 + 35}px`,
+                                                    }}
+                                                />
+                                            );
+                                        }
+                                        return barElements;
+                                    }
+                                });
+                            })()}
+                        </div>
+                    </div>
+
+
+                    {/* 予定タイムライン表示 - 常に表示 */}
+                    <div style={{ 
+                        padding: '16px',
+                        marginTop: '8px',
+                        marginBottom: '100px',
+                        minHeight: '60px',
+                        background: 'rgba(0, 0, 0, 0.1)',
+                        flex: '0 0 auto'
+                    }}>
+                        <div
+                            onClick={() => {
+                                const currentMonthSchedules = getScheduledDays();
+                                console.log('予定一覧クリック', currentMonthSchedules);
+                                setShowScheduleList(!showScheduleList);
+                            }}
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                marginBottom: showScheduleList ? '12px' : '0',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                padding: '8px',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                transition: 'background-color 0.2s ease'
+                            }}
+                        >
+                            予定一覧 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
+                        </div>
+                        
+                        <div style={{
+                            fontSize: '10px',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            marginBottom: '8px'
+                        }}>
+                            デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
+                        </div>
+                        
+                        {showScheduleList && Object.keys(timeSlots).length > 0 && (
+                            <div style={{
+                                paddingRight: '4px'
+                            }}>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    marginBottom: '8px'
+                                }}>
+                                    予定詳細: {getScheduledDays().length}日分の予定があります
+                                </div>
+                                {getScheduledDays().map((dayData, index) => {
+                                    console.log('Rendering dayData:', dayData, 'index:', index); // デバッグ用
+                                    const dateParts = dayData.date.split('-');
+                                    const monthDay = `${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
+                                    
+                                    return (
+                                        <div
+                                            key={dayData.date}
+                                            style={{
+                                                marginBottom: '12px',
+                                                padding: '10px',
+                                                background: 'rgba(255, 255, 255, 0.15)',
+                                                borderRadius: '8px',
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                cursor: 'pointer', // マウスを持ってきた時にポインターカーソルを表示
+                                                transition: 'all 0.3s ease', // ホバー効果のためのトランジション
+                                                userSelect: 'none' // テキスト選択を防止
+                                            }}
+                                            onTouchStart={(e) => handleTouchStart(e, dayData)}
+                                            onMouseDown={(e) => handleMouseDown(e, dayData)}
+                                            onMouseEnter={(e) => {
+                                                // ホバー時の視覚効果
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                                                e.currentTarget.style.transform = 'scale(1.02)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                // ホバー終了時に元に戻す
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                            }}
+                                            onClick={(e) => {
+                                                // シングルクリックで編集画面を表示
+                                                const date = new Date(dayData.date);
+                                                const dateObj = {
+                                                    date: date.getDate(),
+                                                    fullDate: dayData.date,
+                                                    isCurrentMonth: true
+                                                };
+                                                setSelectedDate(dateObj);
+                                                setShowTimeBar(true);
+                                            }}
+                                        >
+                                            <div style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                marginBottom: '6px',
+                                                textAlign: 'center'
+                                            }}>
+                                                {monthDay}
+                                            </div>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gap: '1px',
+                                                height: '12px',
+                                                borderRadius: '6px',
+                                                border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                overflow: 'hidden',
+                                                background: 'rgba(255, 255, 255, 0.1)'
+                                            }}>
+                                                {dayData.slots.map((slot, slotIndex) => {
+                                                    const colors = {
+                                                        work: '#ff9a9e',
+                                                        rest: '#a8e6cf',
+                                                        outing: '#ffd3a5',
+                                                        study: '#c7ceea'
+                                                    };
+                                                    
+                                                    // 新しいデータ構造に対応
+                                                    let backgroundColor = 'transparent';
+                                                    let activityType = null;
+                                                    let memo = '';
+                                                    
+                                                    if (slot) {
+                                                        if (typeof slot === 'object' && slot.type) {
+                                                            activityType = slot.type;
+                                                            backgroundColor = colors[slot.type] || 'transparent';
+                                                            memo = slot.memo || '';
+                                                        } else if (typeof slot === 'string') {
+                                                            activityType = slot;
+                                                            backgroundColor = colors[slot] || 'transparent';
+                                                        }
+                                                    }
+                                                    
+                                                    const activityLabel = activityType === 'work' ? '仕事' 
+                                                                        : activityType === 'rest' ? '休み'
+                                                                        : activityType === 'outing' ? '外出'
+                                                                        : activityType === 'study' ? '勉強'
+                                                                        : '空き';
+                                                    
+                                                    return (
+                                                        <div
+                                                            key={slotIndex}
+                                                            style={{
+                                                                height: '100%',
+                                                                backgroundColor: backgroundColor
+                                                            }}
+                                                            title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                            
+                                            {/* 時間ラベル */}
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gap: '1px',
+                                                marginTop: '4px',
+                                                fontSize: '8px',
+                                                color: 'rgba(255, 255, 255, 0.6)',
+                                                textAlign: 'center'
+                                            }}>
+                                                {[0, 4, 8, 12, 16, 20].map((hour, idx) => (
+                                                    <div key={idx}>{hour}</div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 4時間分割バー */}
+                    <div className={`time-bar-overlay ${showTimeBar ? 'active' : ''}`} onClick={closeTimeBar}>
+                        <div className="time-bar-container" onClick={(e) => e.stopPropagation()}>
+                            <button className="close-btn" onClick={closeTimeBar}>×</button>
+                            
+                            <div className="date-title">
+                                {selectedDate ? `${selectedDate.date}日の予定` : ''}
+                            </div>
+                            <div className="date-subtitle">
+                                時間帯を選択してください
+                            </div>
+
+                            {/* 極細タイムバー */}
+                            <div style={{ marginBottom: '20px', position: 'relative' }}>
+                                <TimeBar24 />
+                                
+                                {/* 予定詳細リスト */}
+                                {selectedDate && (() => {
+                                    const dateKey = selectedDate.fullDate;
+                                    const scheduleItems = [];
+                                    
+                                    // 現在の日付の予定を取得
+                                    for (let i = 0; i < 6; i++) {
+                                        const slotKey = `${dateKey}-${i}`;
+                                        const activity = timeSlots[slotKey];
+                                        if (activity) {
+                                            const startHour = i * 4;
+                                            const endHour = (i + 1) * 4;
+                                            const colors = {
+                                                work: '#ff9a9e',
+                                                rest: '#a8e6cf',
+                                                outing: '#ffd3a5',
+                                                study: '#c7ceea'
+                                            };
+                                            const labels = {
+                                                work: '仕事',
+                                                rest: '休み',
+                                                outing: '外出',
+                                                study: '勉強'
+                                            };
+                                            
+                                            let activityType, memo;
+                                            if (typeof activity === 'object') {
+                                                activityType = activity.type;
+                                                memo = activity.memo || '';
+                                            } else {
+                                                activityType = activity;
+                                                memo = '';
+                                            }
+                                            
+                                            scheduleItems.push({
+                                                time: `${startHour}〜${endHour}時`,
+                                                activity: labels[activityType] || activityType,
+                                                memo: memo,
+                                                color: colors[activityType] || '#ccc'
+                                            });
+                                        }
+                                    }
+                                    
+                                    // 予定がある場合はリストを表示
+                                    if (scheduleItems.length > 0) {
+                                        return React.createElement('div', {
+                                            style: {
+                                                marginTop: '16px',
+                                                marginBottom: '16px',
+                                                padding: '12px',
+                                                background: '#f8f9fa',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e5e7eb'
+                                            }
+                                        }, [
+                                            React.createElement('div', {
+                                                key: 'title',
+                                                style: {
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    color: '#333',
+                                                    marginBottom: '8px'
+                                                }
+                                            }, '予定詳細'),
+                                            ...scheduleItems.map((item, index) => 
+                                                React.createElement('div', {
+                                                    key: index,
+                                                    style: {
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        marginBottom: index < scheduleItems.length - 1 ? '6px' : '0',
+                                                        fontSize: '13px'
+                                                    }
+                                                }, [
+                                                    React.createElement('div', {
+                                                        key: 'color-indicator',
+                                                        style: {
+                                                            width: '12px',
+                                                            height: '12px',
+                                                            borderRadius: '2px',
+                                                            backgroundColor: item.color,
+                                                            flexShrink: 0
+                                                        }
+                                                    }),
+                                                    React.createElement('span', {
+                                                        key: 'time',
+                                                        style: {
+                                                            fontWeight: '500',
+                                                            color: '#333',
+                                                            minWidth: '60px'
+                                                        }
+                                                    }, item.time),
+                                                    React.createElement('span', {
+                                                        key: 'activity',
+                                                        style: {
+                                                            color: '#666'
+                                                        }
+                                                    }, item.memo ? `${item.activity} (${item.memo})` : item.activity)
+                                                ])
+                                            )
+                                        ]);
+                                    }
+                                    return null;
+                                })()}
+                                
+                                <ActivityMenu />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 写真エリア非表示確認ポップアップ */}
+                    {showHideConfirm && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10000
+                        }}>
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '20px',
+                                padding: '30px',
+                                maxWidth: '320px',
+                                width: '90%',
+                                textAlign: 'center'
+                            }}>
+                                <h3 style={{
+                                    margin: '0 0 20px 0',
+                                    color: '#333',
+                                    fontSize: '18px',
+                                    fontWeight: '600',
+                                    fontFamily: 'Comfortaa, sans-serif'
+                                }}>写真を設定しない</h3>
+                                
+                                <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
+                                    <button
+                                        onClick={confirmHidePhotoArea}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px 20px',
+                                            background: '#ccc',
+                                            border: 'none',
+                                            borderRadius: '25px',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            fontFamily: 'Comfortaa, sans-serif',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        yes
+                                    </button>
+                                    
+                                    <button
+                                        onClick={cancelHidePhotoArea}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px 20px',
+                                            background: '#ccc',
+                                            border: 'none',
+                                            borderRadius: '25px',
+                                            color: '#333',
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            fontFamily: 'Comfortaa, sans-serif',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        no
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 長期スケジュール入力モーダル */}
+                    {showLongScheduleModal && (
+                        <div key="long-schedule-modal" style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10001
+                        }} onClick={() => setShowLongScheduleModal(false)}>
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '20px',
+                                padding: '24px',
+                                width: '320px',
+                                maxWidth: '90vw',
+                                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                                position: 'relative',
+                                pointerEvents: 'auto',
+                                zIndex: 10002
+                            }} onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                    onClick={() => setShowLongScheduleModal(false)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '12px',
+                                        right: '12px',
+                                        background: 'rgba(0, 0, 0, 0.1)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#666',
+                                        fontSize: '18px'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                                
+                                <div style={{
+                                    fontSize: '18px',
+                                    fontWeight: '600',
+                                    color: '#333',
+                                    marginBottom: '16px',
+                                    textAlign: 'center',
+                                    fontFamily: 'Baloo 2, cursive'
+                                }}>
+                                    長期スケジュール設定
+                                </div>
+                                
+                                <div style={{
+                                    fontSize: '14px',
+                                    color: '#666',
+                                    marginBottom: '20px',
+                                    textAlign: 'center'
+                                }}>
+                                    {selectedDays.length > 0 && 
+                                        `${selectedDays[0]?.date}日 〜 ${selectedDays[selectedDays.length - 1]?.date}日 (${selectedDays.length}日間)`
+                                    }
+                                </div>
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="予定のタイトルを入力"
+                                        maxLength="25"
+                                        defaultValue=""
+                                        autoFocus
+                                        ref={(input) => {
+                                            if (input) {
+                                                window.longScheduleTitleInput = input;
+                                                // デバッグ用イベントリスナー
+                                                input.addEventListener('input', (e) => {
+                                                    console.log('✏️ Title input:', e.target.value);
+                                                });
+                                                input.addEventListener('focus', () => {
+                                                    console.log('🎯 Title focused');
+                                                });
+                                                input.addEventListener('blur', () => {
+                                                    console.log('🎯 Title blurred');
+                                                });
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '1px solid rgb(229, 231, 235)',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            fontFamily: 'inherit',
+                                            boxSizing: 'border-box',
+                                            background: 'white',
+                                            color: 'black'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <textarea
+                                        placeholder="メモ（任意）"
+                                        rows={3}
+                                        defaultValue=""
+                                        ref={(textarea) => {
+                                            if (textarea) {
+                                                window.longScheduleMemoInput = textarea;
+                                                // デバッグ用イベントリスナー
+                                                textarea.addEventListener('input', (e) => {
+                                                    console.log('✏️ Memo input:', e.target.value);
+                                                });
+                                                textarea.addEventListener('focus', () => {
+                                                    console.log('🎯 Memo focused');
+                                                });
+                                                textarea.addEventListener('blur', () => {
+                                                    console.log('🎯 Memo blurred');
+                                                });
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '1px solid rgb(229, 231, 235)',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            fontFamily: 'inherit',
+                                            resize: 'none',
+                                            boxSizing: 'border-box',
+                                            background: 'white',
+                                            color: 'black'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '12px'
+                                }}>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('❌ キャンセルボタンがクリックされました');
+                                            setShowLongScheduleModal(false);
+                                            exitLongScheduleMode();
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            background: 'white',
+                                            color: '#666',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            pointerEvents: 'auto',
+                                            zIndex: 10004,
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        キャンセル
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('💾 保存ボタンがクリックされました');
+                                            const titleValue = window.longScheduleTitleInput?.value || '';
+                                            const memoValue = window.longScheduleMemoInput?.value || '';
+                                            console.log('保存ボタンクリック時の状態:', { title: titleValue, memo: memoValue });
+                                            saveLongSchedule();
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            background: '#f59e0b',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            pointerEvents: 'auto',
+                                            zIndex: 10004,
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        保存
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Phase 1: Image/38.png完全対応モーダル */}
+                    {false && showScheduleDetailModal && (
+                        <div style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000}}>
+                            <div style={{background: 'white', borderRadius: '20px', padding: '24px', width: '320px', maxWidth: '90vw', boxShadow: '0 20px 40px rgba(0,0,0,0.3)'}}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                                    <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>23日の予定</h3>
+                                    <button onClick={() => setShowScheduleDetailModal(false)} style={{background: '#d1d5db', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '16px'}}>×</button>
+                                </div>
+                                <p style={{fontSize: '14px', color: '#666', marginBottom: '12px'}}>時間帯を選択してください</p>
+                                <div style={{height: '20px', background: '#e5e7eb', borderRadius: '10px', marginBottom: '20px', position: 'relative'}}>
+                                    <div style={{width: '25%', height: '100%', background: '#f59e0b', borderRadius: '10px 0 0 10px'}}></div>
+                                </div>
+                                <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666', marginBottom: '20px'}}>
+                                    <span>4</span><span>8</span><span>12</span><span>16</span><span>20</span>
+                                </div>
+                                <h4 style={{margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600'}}>予定詳細</h4>
+                                <div style={{display: 'flex', alignItems: 'center', fontSize: '14px'}}>
+                                    <div style={{width: '12px', height: '12px', background: '#f59e0b', borderRadius: '50%', marginRight: '12px'}}></div>
+                                    <span>4～8時 外出（散歩）</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // 月別画像データの管理
+        const useMonthImages = () => {
+            const [images, setImages] = useState({});
+
+            React.useEffect(() => {
+                const savedImages = localStorage.getItem('monthImages');
+                if (savedImages) {
+                    setImages(JSON.parse(savedImages));
+                }
+            }, []);
+
+            const addImage = (year, month, imageData, position = 0) => {
+                const key = `${year}-${month}`;
+                const newImages = { ...images };
+                if (!newImages[key]) {
+                    newImages[key] = {};
+                }
+                newImages[key][position] = {
+                    id: Date.now() + Math.random(),
+                    dataUrl: imageData,
+                    uploadDate: new Date().toISOString()
+                };
+                setImages(newImages);
+                localStorage.setItem('monthImages', JSON.stringify(newImages));
+            };
+
+            const getImages = (year, month) => {
+                const key = `${year}-${month}`;
+                return images[key] || {};
+            };
+
+            return { addImage, getImages };
+        };
+
+        const CalendarApp = () => {
+            const currentDate = new Date();
+            const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
+            const [currentMonthIndex, setCurrentMonthIndex] = useState(currentDate.getMonth());
+            const [isUploading, setIsUploading] = useState(false);
+            const [currentUploadPosition, setCurrentUploadPosition] = useState(0);
+            const [showScheduleDetailModal, setShowScheduleDetailModal] = useState(false);
+            const [scheduleDetailData, setScheduleDetailData] = useState({});
+            const { addImage, getImages } = useMonthImages();
+
+            // 活動ラベルを取得するヘルパー関数
+            const getActivityLabel = (activityType) => {
+                switch (activityType) {
+                    case 'work': return '仕事';
+                    case 'rest': return '休み';
+                    case 'outing': return '外出';
+                    case 'study': return '勉強';
+                    default: return '空き';
+                }
+            };
+
+            // 画像選択処理
+            const handleFileSelect = async (event) => {
+                const files = Array.from(event.target.files || []);
+                if (files.length === 0) return;
+
+                setIsUploading(true);
+
+                try {
+                    const file = files[0]; // 1枚ずつアップロード
+                    if (!file.type.startsWith('image/')) return;
+
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+
+                    addImage(currentYear, currentMonthIndex, dataUrl, currentUploadPosition);
+                } catch (error) {
+                    console.error('画像の処理中にエラーが発生しました:', error);
+                    alert('画像の処理中にエラーが発生しました');
+                } finally {
+                    setIsUploading(false);
+                    event.target.value = '';
+                }
+            };
+
+            // 画像エリアクリック処理
+            const handlePhotoClick = (position = 0) => {
+                if (!isUploading) {
+                    setCurrentUploadPosition(position);
+                    document.getElementById('photo-input').click();
+                }
+            };
+
+            // 現在の月のデータを取得
+            const getCurrentMonthData = () => {
+                const images = getImages(currentYear, currentMonthIndex);
+                return { images };
+            };
+
+            // スケジュール詳細表示関数（Phase 2: エラーハンドリング強化）
+            const showScheduleDetails = (schedule, dayIndex) => {
+                try {
+                    // 安全なデータチェック
+                    const safeSchedule = schedule || {};
+                    const safeTitle = safeSchedule.title || 'スケジュール';
+                    
+                    setScheduleDetailData({
+                        date: '23日',
+                        title: safeTitle
+                    });
+                    setShowScheduleDetailModal(true);
+                } catch (error) {
+                    console.error('スケジュール詳細表示エラー:', error);
+                    // フォールバック: エラー時もモーダル表示
+                    try {
+                        setScheduleDetailData({
+                            date: '予定',
+                            title: 'スケジュール'
+                        });
+                        setShowScheduleDetailModal(true);
+                    } catch (fallbackError) {
+                        console.error('フォールバック表示エラー:', fallbackError);
+                        // 最終フォールバック: アラート表示
+                        alert('予定の詳細を表示できませんでした');
+                    }
+                }
+            };
+
+            const handlePrevMonth = () => {
+                if (currentMonthIndex === 0) {
+                    setCurrentMonthIndex(11);
+                    setCurrentYear(currentYear - 1);
+                } else {
+                    setCurrentMonthIndex(currentMonthIndex - 1);
+                }
+            };
+
+            const handleNextMonth = () => {
+                if (currentMonthIndex === 11) {
+                    setCurrentMonthIndex(0);
+                    setCurrentYear(currentYear + 1);
+                } else {
+                    setCurrentMonthIndex(currentMonthIndex + 1);
+                }
+            };
+
+            return (
+                <>
+                    <input
+                        id="photo-input"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                        disabled={isUploading}
+                    />
+                    
+                    
+                    <Calendar
+                        year={currentYear}
+                        month={currentMonthIndex}
+                        monthName={MONTHS[currentMonthIndex]}
+                        onPrevMonth={handlePrevMonth}
+                        onNextMonth={handleNextMonth}
+                        monthData={getCurrentMonthData()}
+                        isUploading={isUploading}
+                        onPhotoClick={handlePhotoClick}
+                    />
+                </>
+            );
+        };
+
+        ReactDOM.render(<CalendarApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

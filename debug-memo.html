@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Field Debug Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Comfortaa', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .debug-info {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .modal-test {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useCallback } = React;
+
+        const DebugApp = () => {
+            // 長期スケジュール用のstate
+            const [longScheduleTitle, setLongScheduleTitle] = useState('');
+            const [longScheduleMemo, setLongScheduleMemo] = useState('');
+            const [showModal, setShowModal] = useState(false);
+            
+            // 活動メモ用のstate
+            const [activityMemos, setActivityMemos] = useState({});
+            
+            // 通常のテスト用state
+            const [testInput, setTestInput] = useState('');
+
+            console.log('Render - longScheduleTitle:', longScheduleTitle);
+            console.log('Render - longScheduleMemo:', longScheduleMemo);
+            console.log('Render - showModal:', showModal);
+
+            const handleMemoChange = useCallback((activityKey, newValue) => {
+                console.log('handleMemoChange called:', activityKey, newValue, 'Length:', newValue.length);
+                setActivityMemos(prev => {
+                    const updated = {
+                        ...prev,
+                        [activityKey]: newValue
+                    };
+                    console.log('Updated activityMemos:', updated);
+                    return updated;
+                });
+            }, []);
+
+            const openModal = () => {
+                console.log('モーダルを開く前のreset');
+                setLongScheduleTitle('');
+                setLongScheduleMemo('');
+                setTimeout(() => {
+                    setShowModal(true);
+                    console.log('モーダル表示完了');
+                }, 150);
+            };
+
+            const activities = [
+                { key: 'work', label: '仕事', color: '#ff9a9e' },
+                { key: 'rest', label: '休み', color: '#a8e6cf' }
+            ];
+
+            return (
+                <div>
+                    <div className="test-container">
+                        <h2>テスト1: 通常の入力フィールド</h2>
+                        <input
+                            type="text"
+                            className="test-input"
+                            placeholder="通常のテスト入力"
+                            value={testInput}
+                            maxLength={25}
+                            onChange={(e) => {
+                                console.log('通常入力 onChange:', e.target.value);
+                                setTestInput(e.target.value);
+                            }}
+                        />
+                        <div className="debug-info">
+                            現在の値: "{testInput}" (長さ: {testInput.length}/25)
+                        </div>
+                    </div>
+
+                    <div className="test-container">
+                        <h2>テスト2: 長期スケジュール入力フィールド（モーダル外）</h2>
+                        <input
+                            type="text"
+                            className="test-input"
+                            placeholder="予定のタイトルを入力"
+                            value={longScheduleTitle}
+                            maxLength={25}
+                            onChange={(e) => {
+                                console.log('長期スケジュール onChange:', e.target.value);
+                                setLongScheduleTitle(e.target.value);
+                            }}
+                        />
+                        <textarea
+                            className="test-input"
+                            placeholder="メモ（任意）"
+                            rows={3}
+                            value={longScheduleMemo}
+                            onChange={(e) => {
+                                console.log('長期スケジュールメモ onChange:', e.target.value);
+                                setLongScheduleMemo(e.target.value);
+                            }}
+                        />
+                        <div className="debug-info">
+                            タイトル: "{longScheduleTitle}" (長さ: {longScheduleTitle.length}/25)<br/>
+                            メモ: "{longScheduleMemo}" (長さ: {longScheduleMemo.length})
+                        </div>
+                    </div>
+
+                    <div className="test-container">
+                        <h2>テスト3: モーダル内の入力フィールド</h2>
+                        <button onClick={openModal}>モーダルを開く</button>
+                        
+                        {showModal && (
+                            <div className="modal-test" onClick={() => setShowModal(false)}>
+                                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                    <h3>長期スケジュール設定</h3>
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <input
+                                            type="text"
+                                            className="test-input"
+                                            placeholder="予定のタイトルを入力"
+                                            value={longScheduleTitle}
+                                            maxLength={25}
+                                            onChange={(e) => {
+                                                console.log('モーダル内 onChange:', e.target.value);
+                                                setLongScheduleTitle(e.target.value);
+                                            }}
+                                        />
+                                    </div>
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <textarea
+                                            className="test-input"
+                                            placeholder="メモ（任意）"
+                                            rows={3}
+                                            value={longScheduleMemo}
+                                            onChange={(e) => {
+                                                console.log('モーダル内メモ onChange:', e.target.value);
+                                                setLongScheduleMemo(e.target.value);
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="debug-info">
+                                        タイトル: "{longScheduleTitle}"<br/>
+                                        メモ: "{longScheduleMemo}"
+                                    </div>
+                                    <button onClick={() => setShowModal(false)}>閉じる</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="test-container">
+                        <h2>テスト4: 活動メモ入力</h2>
+                        {activities.map(activity => (
+                            <div key={activity.key} style={{ marginBottom: '15px' }}>
+                                <h4>{activity.label}</h4>
+                                <textarea
+                                    className="test-input"
+                                    placeholder={`${activity.label}のメモを入力`}
+                                    value={activityMemos[activity.key] || ''}
+                                    onChange={(e) => {
+                                        console.log('活動メモ onChange:', activity.key, e.target.value);
+                                        handleMemoChange(activity.key, e.target.value);
+                                    }}
+                                />
+                                <div className="debug-info">
+                                    現在の値: "{activityMemos[activity.key] || ''}" (長さ: {(activityMemos[activity.key] || '').length})
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<DebugApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
