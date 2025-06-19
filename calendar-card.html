@@ -507,6 +507,7 @@
             const [showActivityMenu, setShowActivityMenu] = useState(false);
             const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
             const [showScheduleList, setShowScheduleList] = useState(false);
+            const [scheduleListTab, setScheduleListTab] = useState('oneday'); // 'oneday' | 'longterm'
             const [showPhotoArea, setShowPhotoArea] = useState(true);
             const [showHideConfirm, setShowHideConfirm] = useState(false);
             const [selectedActivity, setSelectedActivity] = useState(null);
@@ -1249,6 +1250,39 @@
                 return result;
             };
 
+            // 長期スケジュール取得関数（現在表示月に関連するもののみ）
+            const getLongTermSchedules = () => {
+                const currentMonthSchedules = [];
+                const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                
+                Object.entries(longSchedules).forEach(([scheduleId, schedule]) => {
+                    // スケジュールが現在の月に含まれるかチェック
+                    const hasCurrentMonthDays = schedule.days && schedule.days.some(day => 
+                        day.startsWith(currentYearMonth)
+                    );
+                    
+                    if (hasCurrentMonthDays) {
+                        // 現在の月に含まれる日数のみを抽出
+                        const currentMonthDays = schedule.days.filter(day => 
+                            day.startsWith(currentYearMonth)
+                        );
+                        
+                        currentMonthSchedules.push({
+                            id: scheduleId,
+                            title: schedule.title,
+                            memo: schedule.memo,
+                            days: schedule.days, // 全期間を保持
+                            currentMonthDays: currentMonthDays, // 現在月のみ
+                            dayCount: schedule.days.length,
+                            currentMonthDayCount: currentMonthDays.length
+                        });
+                    }
+                });
+                
+                console.log('getLongTermSchedules result:', currentMonthSchedules);
+                return currentMonthSchedules;
+            };
+
             // 個別タイムバー表示コンポーネント
             const ScheduledDayBar = ({ date, slots }) => {
                 console.log('ScheduledDayBar rendering:', date, slots); // デバッグ用
@@ -1865,7 +1899,8 @@
                         <div
                             onClick={() => {
                                 const currentMonthSchedules = getScheduledDays();
-                                console.log('予定一覧クリック', currentMonthSchedules);
+                                const longTermSchedules = getLongTermSchedules();
+                                console.log('予定一覧クリック', { currentMonthSchedules, longTermSchedules });
                                 setShowScheduleList(!showScheduleList);
                             }}
                             style={{
@@ -1881,8 +1916,59 @@
                                 transition: 'background-color 0.2s ease'
                             }}
                         >
-                            予定一覧 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
+                            予定一覧 ({scheduleListTab === 'oneday' ? getScheduledDays().length : getLongTermSchedules().length}件) {showScheduleList ? '▼' : '▶'}
                         </div>
+                        
+                        {/* タブ表示 */}
+                        {showScheduleList && (
+                            <div style={{
+                                display: 'flex',
+                                marginBottom: '16px',
+                                gap: '8px',
+                                justifyContent: 'center'
+                            }}>
+                                <div
+                                    onClick={() => setScheduleListTab('oneday')}
+                                    style={{
+                                        padding: '10px 20px',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        borderRadius: '20px',
+                                        background: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
+                                        color: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)',
+                                        transition: 'all 0.3s ease',
+                                        border: scheduleListTab === 'oneday' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                                        minWidth: '80px',
+                                        backdropFilter: 'blur(10px)',
+                                        boxShadow: scheduleListTab === 'oneday' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
+                                    }}
+                                >
+                                    one day
+                                </div>
+                                <div
+                                    onClick={() => setScheduleListTab('longterm')}
+                                    style={{
+                                        padding: '10px 20px',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        borderRadius: '20px',
+                                        background: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
+                                        color: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)',
+                                        transition: 'all 0.3s ease',
+                                        border: scheduleListTab === 'longterm' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                                        minWidth: '100px',
+                                        backdropFilter: 'blur(10px)',
+                                        boxShadow: scheduleListTab === 'longterm' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
+                                    }}
+                                >
+                                    LONG-TERM
+                                </div>
+                            </div>
+                        )}
                         
                         <div style={{
                             fontSize: '10px',
@@ -1892,18 +1978,21 @@
                             デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
                         </div>
                         
-                        {showScheduleList && Object.keys(timeSlots).length > 0 && (
+                        {showScheduleList && (
                             <div style={{
                                 paddingRight: '4px'
                             }}>
-                                <div style={{
-                                    fontSize: '10px',
-                                    color: 'rgba(255, 255, 255, 0.6)',
-                                    marginBottom: '8px'
-                                }}>
-                                    予定詳細: {getScheduledDays().length}日分の予定があります
-                                </div>
-                                {getScheduledDays().map((dayData, index) => {
+                                {/* one day タブの表示 */}
+                                {scheduleListTab === 'oneday' && Object.keys(timeSlots).length > 0 && (
+                                    <>
+                                        <div style={{
+                                            fontSize: '10px',
+                                            color: 'rgba(255, 255, 255, 0.6)',
+                                            marginBottom: '8px'
+                                        }}>
+                                            予定詳細: {getScheduledDays().length}日分の予定があります
+                                        </div>
+                                        {getScheduledDays().length > 0 ? getScheduledDays().map((dayData, index) => {
                                     console.log('Rendering dayData:', dayData, 'index:', index); // デバッグ用
                                     const dateParts = dayData.date.split('-');
                                     const monthDay = `${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
@@ -2023,7 +2112,135 @@
                                             </div>
                                         </div>
                                     );
-                                })}
+                                        }) : (
+                                            <div style={{
+                                                textAlign: 'center',
+                                                fontSize: '12px',
+                                                color: 'rgba(255, 255, 255, 0.5)',
+                                                padding: '20px'
+                                            }}>
+                                                この月に1日の予定はありません
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                
+                                {/* one day予定が存在しない場合の空状態表示 */}
+                                {scheduleListTab === 'oneday' && Object.keys(timeSlots).length === 0 && (
+                                    <div style={{
+                                        textAlign: 'center',
+                                        fontSize: '12px',
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        padding: '20px'
+                                    }}>
+                                        この月に1日の予定はありません
+                                    </div>
+                                )}
+                                
+                                {/* LONG-TERM タブの表示 */}
+                                {scheduleListTab === 'longterm' && (
+                                    <>
+                                        <div style={{
+                                            fontSize: '10px',
+                                            color: 'rgba(255, 255, 255, 0.6)',
+                                            marginBottom: '8px'
+                                        }}>
+                                            長期スケジュール: {getLongTermSchedules().length}件の予定があります
+                                        </div>
+                                        {getLongTermSchedules().map((schedule, index) => {
+                                            console.log('Rendering long-term schedule:', schedule, 'index:', index);
+                                            
+                                            // 日付範囲を計算
+                                            const sortedDays = schedule.days.sort();
+                                            const startDate = sortedDays[0];
+                                            const endDate = sortedDays[sortedDays.length - 1];
+                                            
+                                            // 表示用の日付文字列を生成
+                                            const formatDate = (dateStr) => {
+                                                const parts = dateStr.split('-');
+                                                return `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+                                            };
+                                            
+                                            const dateRangeText = startDate === endDate 
+                                                ? formatDate(startDate)
+                                                : `${formatDate(startDate)}～${formatDate(endDate)}`;
+                                            
+                                            return (
+                                                <div
+                                                    key={schedule.id}
+                                                    style={{
+                                                        marginBottom: '12px',
+                                                        padding: '12px',
+                                                        background: 'rgba(255, 255, 255, 0.15)',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease',
+                                                        userSelect: 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                                                        e.currentTarget.style.transform = 'scale(1.02)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                    onClick={() => {
+                                                        // 長期スケジュールの詳細表示（将来的にカスタムモーダルと連携）
+                                                        showScheduleDetails(schedule);
+                                                    }}
+                                                >
+                                                    <div style={{
+                                                        fontSize: '13px',
+                                                        fontWeight: '600',
+                                                        color: 'rgba(255, 255, 255, 0.9)',
+                                                        marginBottom: '6px',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {dateRangeText}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '12px',
+                                                        fontWeight: '600',
+                                                        color: 'rgba(255, 255, 255, 0.8)',
+                                                        marginBottom: '4px'
+                                                    }}>
+                                                        {schedule.title}
+                                                    </div>
+                                                    {schedule.memo && (
+                                                        <div style={{
+                                                            fontSize: '10px',
+                                                            color: 'rgba(255, 255, 255, 0.6)',
+                                                            marginBottom: '6px'
+                                                        }}>
+                                                            {schedule.memo}
+                                                        </div>
+                                                    )}
+                                                    <div style={{
+                                                        fontSize: '9px',
+                                                        color: 'rgba(255, 255, 255, 0.5)',
+                                                        textAlign: 'right'
+                                                    }}>
+                                                        全{schedule.dayCount}日間 (今月{schedule.currentMonthDayCount}日)
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        
+                                        {/* 長期スケジュールが存在しない場合の表示 */}
+                                        {getLongTermSchedules().length === 0 && (
+                                            <div style={{
+                                                textAlign: 'center',
+                                                fontSize: '12px',
+                                                color: 'rgba(255, 255, 255, 0.5)',
+                                                padding: '20px'
+                                            }}>
+                                                この月に長期スケジュールはありません
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

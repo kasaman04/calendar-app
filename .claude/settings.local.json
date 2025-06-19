@@ -30,7 +30,10 @@
       "Bash(./node_modules/typescript/bin/tsc --noEmit)",
       "Bash(node:*)",
       "Bash(./node_modules/typescript/bin/tsc --version)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(pkill:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
