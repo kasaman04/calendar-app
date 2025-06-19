@@ -506,7 +506,6 @@
             const [timeSlots, setTimeSlots] = useState({});
             const [showActivityMenu, setShowActivityMenu] = useState(false);
             const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
-            const [showScheduleList, setShowScheduleList] = useState(false);
             const [scheduleListTab, setScheduleListTab] = useState('oneday'); // 'oneday' | 'longterm'
             const [showPhotoArea, setShowPhotoArea] = useState(true);
             const [showHideConfirm, setShowHideConfirm] = useState(false);
@@ -1765,7 +1764,7 @@
                                                 title={`ダブルクリックで詳細表示: ${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
                                                 onDoubleClick={(e) => { 
                                                     e.stopPropagation(); 
-                                                    showScheduleDetails(schedule); 
+                                                    alert(`スケジュール: ${schedule.title}`); 
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
                                             />
@@ -1797,7 +1796,7 @@
                                                     title={`ダブルクリックで詳細表示: ${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
                                                     onDoubleClick={(e) => { 
                                                         e.stopPropagation(); 
-                                                        showScheduleDetails(schedule); 
+                                                        alert(`スケジュール: ${schedule.title}`); 
                                                     }}
                                                     onClick={(e) => e.stopPropagation()}
                                                 />
@@ -1896,79 +1895,6 @@
                         background: 'rgba(0, 0, 0, 0.1)',
                         flex: '0 0 auto'
                     }}>
-                        <div
-                            onClick={() => {
-                                const currentMonthSchedules = getScheduledDays();
-                                const longTermSchedules = getLongTermSchedules();
-                                console.log('予定一覧クリック', { currentMonthSchedules, longTermSchedules });
-                                setShowScheduleList(!showScheduleList);
-                            }}
-                            style={{
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: 'rgba(255, 255, 255, 0.9)',
-                                marginBottom: showScheduleList ? '12px' : '0',
-                                textAlign: 'center',
-                                cursor: 'pointer',
-                                padding: '8px',
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                borderRadius: '8px',
-                                transition: 'background-color 0.2s ease'
-                            }}
-                        >
-                            予定一覧 ({scheduleListTab === 'oneday' ? getScheduledDays().length : getLongTermSchedules().length}件) {showScheduleList ? '▼' : '▶'}
-                        </div>
-                        
-                        {/* タブ表示 */}
-                        {showScheduleList && (
-                            <div style={{
-                                display: 'flex',
-                                marginBottom: '16px',
-                                gap: '8px',
-                                justifyContent: 'center'
-                            }}>
-                                <div
-                                    onClick={() => setScheduleListTab('oneday')}
-                                    style={{
-                                        padding: '10px 20px',
-                                        fontSize: '13px',
-                                        fontWeight: '600',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        borderRadius: '20px',
-                                        background: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
-                                        color: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)',
-                                        transition: 'all 0.3s ease',
-                                        border: scheduleListTab === 'oneday' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
-                                        minWidth: '80px',
-                                        backdropFilter: 'blur(10px)',
-                                        boxShadow: scheduleListTab === 'oneday' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
-                                    }}
-                                >
-                                    one day
-                                </div>
-                                <div
-                                    onClick={() => setScheduleListTab('longterm')}
-                                    style={{
-                                        padding: '10px 20px',
-                                        fontSize: '13px',
-                                        fontWeight: '600',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        borderRadius: '20px',
-                                        background: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
-                                        color: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)',
-                                        transition: 'all 0.3s ease',
-                                        border: scheduleListTab === 'longterm' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
-                                        minWidth: '100px',
-                                        backdropFilter: 'blur(10px)',
-                                        boxShadow: scheduleListTab === 'longterm' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
-                                    }}
-                                >
-                                    LONG-TERM
-                                </div>
-                            </div>
-                        )}
                         
                         <div style={{
                             fontSize: '10px',
@@ -1978,14 +1904,71 @@
                             デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
                         </div>
                         
-                        {showScheduleList && (
-                            <div style={{
-                                paddingRight: '4px'
-                            }}>
-                                {/* one day タブの表示 */}
-                                {scheduleListTab === 'oneday' && Object.keys(timeSlots).length > 0 && (
-                                    <>
-                                        <div style={{
+                        {/* タブ表示 - 常に表示 */}
+                        <div style={{
+                            display: 'flex',
+                            marginBottom: '16px',
+                            gap: '8px',
+                            justifyContent: 'center'
+                        }}>
+                            <div
+                                onClick={() => setScheduleListTab('oneday')}
+                                style={{
+                                    padding: '10px 20px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    cursor: 'pointer',
+                                    borderRadius: '20px',
+                                    background: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
+                                    color: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)',
+                                    transition: 'all 0.3s ease',
+                                    border: scheduleListTab === 'oneday' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                                    minWidth: '80px',
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: scheduleListTab === 'oneday' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
+                                }}
+                            >
+                                one day
+                            </div>
+                            <div
+                                onClick={() => setScheduleListTab('longterm')}
+                                style={{
+                                    padding: '10px 20px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    cursor: 'pointer',
+                                    borderRadius: '20px',
+                                    background: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)',
+                                    color: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)',
+                                    transition: 'all 0.3s ease',
+                                    border: scheduleListTab === 'longterm' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+                                    minWidth: '100px',
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: scheduleListTab === 'longterm' ? '0 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
+                                }}
+                            >
+                                LONG-TERM
+                            </div>
+                        </div>
+                        
+                        <div style={{
+                            fontSize: '10px',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            marginBottom: '8px'
+                        }}>
+                            デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
+                        </div>
+                        
+                        {/* タブコンテンツ - 常に表示 */}
+                        <div style={{
+                            paddingRight: '4px'
+                        }}>
+                            {/* one day タブの表示 */}
+                            {scheduleListTab === 'oneday' && Object.keys(timeSlots).length > 0 && (
+                                <>
+                                    <div style={{
                                             fontSize: '10px',
                                             color: 'rgba(255, 255, 255, 0.6)',
                                             marginBottom: '8px'
@@ -1993,125 +1976,125 @@
                                             予定詳細: {getScheduledDays().length}日分の予定があります
                                         </div>
                                         {getScheduledDays().length > 0 ? getScheduledDays().map((dayData, index) => {
-                                    console.log('Rendering dayData:', dayData, 'index:', index); // デバッグ用
-                                    const dateParts = dayData.date.split('-');
-                                    const monthDay = `${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
-                                    
-                                    return (
-                                        <div
-                                            key={dayData.date}
-                                            style={{
-                                                marginBottom: '12px',
-                                                padding: '10px',
-                                                background: 'rgba(255, 255, 255, 0.15)',
-                                                borderRadius: '8px',
-                                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                                cursor: 'pointer', // マウスを持ってきた時にポインターカーソルを表示
-                                                transition: 'all 0.3s ease', // ホバー効果のためのトランジション
-                                                userSelect: 'none' // テキスト選択を防止
-                                            }}
-                                            onTouchStart={(e) => handleTouchStart(e, dayData)}
-                                            onMouseDown={(e) => handleMouseDown(e, dayData)}
-                                            onMouseEnter={(e) => {
-                                                // ホバー時の視覚効果
-                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
-                                                e.currentTarget.style.transform = 'scale(1.02)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                // ホバー終了時に元に戻す
-                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                            }}
-                                            onClick={(e) => {
-                                                // シングルクリックで編集画面を表示
-                                                const date = new Date(dayData.date);
-                                                const dateObj = {
-                                                    date: date.getDate(),
-                                                    fullDate: dayData.date,
-                                                    isCurrentMonth: true
-                                                };
-                                                setSelectedDate(dateObj);
-                                                setShowTimeBar(true);
-                                            }}
-                                        >
-                                            <div style={{
-                                                fontSize: '13px',
-                                                fontWeight: '600',
-                                                color: 'rgba(255, 255, 255, 0.9)',
-                                                marginBottom: '6px',
-                                                textAlign: 'center'
-                                            }}>
-                                                {monthDay}
-                                            </div>
-                                            <div style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(6, 1fr)',
-                                                gap: '1px',
-                                                height: '12px',
-                                                borderRadius: '6px',
-                                                border: '1px solid rgba(255, 255, 255, 0.4)',
-                                                overflow: 'hidden',
-                                                background: 'rgba(255, 255, 255, 0.1)'
-                                            }}>
-                                                {dayData.slots.map((slot, slotIndex) => {
-                                                    const colors = {
-                                                        work: '#ff9a9e',
-                                                        rest: '#a8e6cf',
-                                                        outing: '#ffd3a5',
-                                                        study: '#c7ceea'
-                                                    };
-                                                    
-                                                    // 新しいデータ構造に対応
-                                                    let backgroundColor = 'transparent';
-                                                    let activityType = null;
-                                                    let memo = '';
-                                                    
-                                                    if (slot) {
-                                                        if (typeof slot === 'object' && slot.type) {
-                                                            activityType = slot.type;
-                                                            backgroundColor = colors[slot.type] || 'transparent';
-                                                            memo = slot.memo || '';
-                                                        } else if (typeof slot === 'string') {
-                                                            activityType = slot;
-                                                            backgroundColor = colors[slot] || 'transparent';
-                                                        }
-                                                    }
-                                                    
-                                                    const activityLabel = activityType === 'work' ? '仕事' 
-                                                                        : activityType === 'rest' ? '休み'
-                                                                        : activityType === 'outing' ? '外出'
-                                                                        : activityType === 'study' ? '勉強'
-                                                                        : '空き';
-                                                    
-                                                    return (
-                                                        <div
-                                                            key={slotIndex}
-                                                            style={{
-                                                                height: '100%',
-                                                                backgroundColor: backgroundColor
-                                                            }}
-                                                            title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
+                                            console.log('Rendering dayData:', dayData, 'index:', index); // デバッグ用
+                                            const dateParts = dayData.date.split('-');
+                                            const monthDay = `${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
                                             
-                                            {/* 時間ラベル */}
-                                            <div style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(6, 1fr)',
-                                                gap: '1px',
-                                                marginTop: '4px',
-                                                fontSize: '8px',
-                                                color: 'rgba(255, 255, 255, 0.6)',
-                                                textAlign: 'center'
-                                            }}>
-                                                {[0, 4, 8, 12, 16, 20].map((hour, idx) => (
-                                                    <div key={idx}>{hour}</div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
+                                            return (
+                                                <div
+                                                    key={dayData.date}
+                                                    style={{
+                                                        marginBottom: '12px',
+                                                        padding: '10px',
+                                                        background: 'rgba(255, 255, 255, 0.15)',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                        cursor: 'pointer', // マウスを持ってきた時にポインターカーソルを表示
+                                                        transition: 'all 0.3s ease', // ホバー効果のためのトランジション
+                                                        userSelect: 'none' // テキスト選択を防止
+                                                    }}
+                                                    onTouchStart={(e) => handleTouchStart(e, dayData)}
+                                                    onMouseDown={(e) => handleMouseDown(e, dayData)}
+                                                    onMouseEnter={(e) => {
+                                                        // ホバー時の視覚効果
+                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                                                        e.currentTarget.style.transform = 'scale(1.02)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        // ホバー終了時に元に戻す
+                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                    onClick={(e) => {
+                                                        // シングルクリックで編集画面を表示
+                                                        const date = new Date(dayData.date);
+                                                        const dateObj = {
+                                                            date: date.getDate(),
+                                                            fullDate: dayData.date,
+                                                            isCurrentMonth: true
+                                                        };
+                                                        setSelectedDate(dateObj);
+                                                        setShowTimeBar(true);
+                                                    }}
+                                                >
+                                                    <div style={{
+                                                        fontSize: '13px',
+                                                        fontWeight: '600',
+                                                        color: 'rgba(255, 255, 255, 0.9)',
+                                                        marginBottom: '6px',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {monthDay}
+                                                    </div>
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: 'repeat(6, 1fr)',
+                                                        gap: '1px',
+                                                        height: '12px',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                                                        overflow: 'hidden',
+                                                        background: 'rgba(255, 255, 255, 0.1)'
+                                                    }}>
+                                                        {dayData.slots.map((slot, slotIndex) => {
+                                                            const colors = {
+                                                                work: '#ff9a9e',
+                                                                rest: '#a8e6cf',
+                                                                outing: '#ffd3a5',
+                                                                study: '#c7ceea'
+                                                            };
+                                                            
+                                                            // 新しいデータ構造に対応
+                                                            let backgroundColor = 'transparent';
+                                                            let activityType = null;
+                                                            let memo = '';
+                                                            
+                                                            if (slot) {
+                                                                if (typeof slot === 'object' && slot.type) {
+                                                                    activityType = slot.type;
+                                                                    backgroundColor = colors[slot.type] || 'transparent';
+                                                                    memo = slot.memo || '';
+                                                                } else if (typeof slot === 'string') {
+                                                                    activityType = slot;
+                                                                    backgroundColor = colors[slot] || 'transparent';
+                                                                }
+                                                            }
+                                                            
+                                                            const activityLabel = activityType === 'work' ? '仕事' 
+                                                                                : activityType === 'rest' ? '休み'
+                                                                                : activityType === 'outing' ? '外出'
+                                                                                : activityType === 'study' ? '勉強'
+                                                                                : '空き';
+                                                            
+                                                            return (
+                                                                <div
+                                                                    key={slotIndex}
+                                                                    style={{
+                                                                        height: '100%',
+                                                                        backgroundColor: backgroundColor
+                                                                    }}
+                                                                    title={`${slotIndex * 4}:00-${(slotIndex + 1) * 4}:00 ${activityLabel}${memo ? ` (${memo})` : ''}`}
+                                                                />
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    
+                                                    {/* 時間ラベル */}
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: 'repeat(6, 1fr)',
+                                                        gap: '1px',
+                                                        marginTop: '4px',
+                                                        fontSize: '8px',
+                                                        color: 'rgba(255, 255, 255, 0.6)',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {[0, 4, 8, 12, 16, 20].map((hour, idx) => (
+                                                            <div key={idx}>{hour}</div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
                                         }) : (
                                             <div style={{
                                                 textAlign: 'center',
@@ -2188,7 +2171,7 @@
                                                     }}
                                                     onClick={() => {
                                                         // 長期スケジュールの詳細表示（将来的にカスタムモーダルと連携）
-                                                        showScheduleDetails(schedule);
+                                                        alert(`スケジュール: ${schedule.title}`);
                                                     }}
                                                 >
                                                     <div style={{
@@ -2241,8 +2224,7 @@
                                         )}
                                     </>
                                 )}
-                            </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* 4時間分割バー */}
@@ -2647,175 +2629,9 @@
                         </div>
                     )}
                     
-                    {/* Phase 1: Image/38.png完全対応モーダル */}
-                    {false && showScheduleDetailModal && (
-                        <div style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000}}>
-                            <div style={{background: 'white', borderRadius: '20px', padding: '24px', width: '320px', maxWidth: '90vw', boxShadow: '0 20px 40px rgba(0,0,0,0.3)'}}>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                                    <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>23日の予定</h3>
-                                    <button onClick={() => setShowScheduleDetailModal(false)} style={{background: '#d1d5db', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '16px'}}>×</button>
-                                </div>
-                                <p style={{fontSize: '14px', color: '#666', marginBottom: '12px'}}>時間帯を選択してください</p>
-                                <div style={{height: '20px', background: '#e5e7eb', borderRadius: '10px', marginBottom: '20px', position: 'relative'}}>
-                                    <div style={{width: '25%', height: '100%', background: '#f59e0b', borderRadius: '10px 0 0 10px'}}></div>
-                                </div>
-                                <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666', marginBottom: '20px'}}>
-                                    <span>4</span><span>8</span><span>12</span><span>16</span><span>20</span>
-                                </div>
-                                <h4 style={{margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600'}}>予定詳細</h4>
-                                <div style={{display: 'flex', alignItems: 'center', fontSize: '14px'}}>
-                                    <div style={{width: '12px', height: '12px', background: '#f59e0b', borderRadius: '50%', marginRight: '12px'}}></div>
-                                    <span>4～8時 外出（散歩）</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Phase 1: Image/38.png完全対応モーダル - TEMPORARILY DISABLED */}
 
-                    {/* スケジュール詳細モーダル */}
-                    {showScheduleDetailModal && scheduleDetailData && (
-                        <div className={`schedule-detail-modal ${showScheduleDetailModal ? 'active' : ''}`}>
-                            <div className="schedule-detail-container">
-                                <div className="modal-header">
-                                    <h3 className="modal-title">{getDayRangeText(scheduleDetailData)}</h3>
-                                    <button className="close-button" onClick={closeScheduleDetailModal}>
-                                        ×
-                                    </button>
-                                </div>
-                                
-                                <div className="schedule-details">
-                                    {isEditMode ? (
-                                        <>
-                                            {/* 編集モード */}
-                                            <div style={{ marginBottom: '16px' }}>
-                                                <input
-                                                    type="text"
-                                                    value={editTitle}
-                                                    onChange={(e) => setEditTitle(e.target.value)}
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '12px',
-                                                        border: '2px solid #e5e7eb',
-                                                        borderRadius: '8px',
-                                                        fontSize: '16px',
-                                                        fontWeight: '600',
-                                                        outline: 'none',
-                                                        boxSizing: 'border-box'
-                                                    }}
-                                                    placeholder="予定のタイトル"
-                                                />
-                                            </div>
-                                            <div style={{ marginBottom: '16px' }}>
-                                                <textarea
-                                                    value={editMemo}
-                                                    onChange={(e) => setEditMemo(e.target.value)}
-                                                    rows={3}
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '12px',
-                                                        border: '2px solid #e5e7eb',
-                                                        borderRadius: '8px',
-                                                        fontSize: '14px',
-                                                        outline: 'none',
-                                                        resize: 'vertical',
-                                                        boxSizing: 'border-box'
-                                                    }}
-                                                    placeholder="メモ（任意）"
-                                                />
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                                <button
-                                                    onClick={cancelEditMode}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        border: '1px solid #d1d5db',
-                                                        borderRadius: '6px',
-                                                        background: 'white',
-                                                        color: '#6b7280',
-                                                        cursor: 'pointer',
-                                                        fontSize: '14px'
-                                                    }}
-                                                >
-                                                    キャンセル
-                                                </button>
-                                                <button
-                                                    onClick={saveScheduleEdit}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        background: '#3b82f6',
-                                                        color: 'white',
-                                                        cursor: 'pointer',
-                                                        fontSize: '14px',
-                                                        fontWeight: '500'
-                                                    }}
-                                                >
-                                                    保存
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* 表示モード */}
-                                            <h4 className="details-title">{scheduleDetailData.title}</h4>
-                                            {scheduleDetailData.memo && (
-                                                <p style={{ 
-                                                    fontSize: '14px', 
-                                                    color: '#666', 
-                                                    lineHeight: '1.5',
-                                                    margin: '0 0 16px 0',
-                                                    padding: '12px',
-                                                    background: '#f9fafb',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid #e5e7eb'
-                                                }}>
-                                                    {scheduleDetailData.memo}
-                                                </p>
-                                            )}
-                                            {/* 変更・削除ボタン */}
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-                                                <button
-                                                    onClick={startEditMode}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        background: '#3b82f6',
-                                                        color: 'white',
-                                                        cursor: 'pointer',
-                                                        fontSize: '14px',
-                                                        fontWeight: '500',
-                                                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-                                                    }}
-                                                >
-                                                    変更
-                                                </button>
-                                                <button
-                                                    onClick={deleteSchedule}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        background: '#ef4444',
-                                                        color: 'white',
-                                                        cursor: 'pointer',
-                                                        fontSize: '14px',
-                                                        fontWeight: '500',
-                                                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
-                                                        transition: 'all 0.2s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => e.target.style.background = '#dc2626'}
-                                                    onMouseLeave={(e) => e.target.style.background = '#ef4444'}
-                                                >
-                                                    削除
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* スケジュール詳細モーダル - TEMPORARILY DISABLED */}
                 </div>
             );
         };
@@ -2860,8 +2676,6 @@
             const [currentMonthIndex, setCurrentMonthIndex] = useState(currentDate.getMonth());
             const [isUploading, setIsUploading] = useState(false);
             const [currentUploadPosition, setCurrentUploadPosition] = useState(0);
-            const [showScheduleDetailModal, setShowScheduleDetailModal] = useState(false);
-            const [scheduleDetailData, setScheduleDetailData] = useState({});
             const { addImage, getImages } = useMonthImages();
 
             // 活動ラベルを取得するヘルパー関数
