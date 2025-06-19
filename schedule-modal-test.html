@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スケジュール詳細モーダル - テスト</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .test-container {
+            text-align: center;
+        }
+        
+        .test-button {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-button:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* モーダルスタイル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-container {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            margin: 0;
+            fontSize: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .close-button {
+            background: #d1d5db;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            transition: all 0.2s ease;
+        }
+        
+        .close-button:hover {
+            background: #9ca3af;
+            color: #333;
+        }
+        
+        .modal-subtitle {
+            fontSize: 14px;
+            color: #666;
+            margin-bottom: 16px;
+            margin-top: 0;
+        }
+        
+        .time-bar-container {
+            margin-bottom: 20px;
+        }
+        
+        .time-bar {
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .time-segment {
+            position: absolute;
+            height: 100%;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .time-segment:hover {
+            transform: scaleY(1.1);
+        }
+        
+        .time-segment.active {
+            background: #f59e0b !important;
+        }
+        
+        .time-segment.inactive {
+            background: #e5e7eb;
+        }
+        
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .schedule-details {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+        }
+        
+        .details-title {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .schedule-icon {
+            width: 12px;
+            height: 12px;
+            background: #f59e0b;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .schedule-text {
+            flex: 1;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 480px) {
+            .modal-container {
+                width: 280px;
+                padding: 20px;
+            }
+            
+            .modal-title {
+                font-size: 16px;
+            }
+            
+            .details-title {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        const ScheduleModal = () => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [isInputModalOpen, setIsInputModalOpen] = useState(false);
+            const [selectedDays, setSelectedDays] = useState([]);
+            const [scheduleTitle, setScheduleTitle] = useState('');
+            const [scheduleMemo, setScheduleMemo] = useState('');
+            const [savedSchedule, setSavedSchedule] = useState(null);
+            
+            // カレンダーの日付生成（6月の例）
+            const generateCalendarDays = () => {
+                const days = [];
+                for (let i = 1; i <= 30; i++) {
+                    days.push({
+                        date: i,
+                        fullDate: `2025-06-${String(i).padStart(2, '0')}`,
+                        isCurrentMonth: true
+                    });
+                }
+                return days;
+            };
+            
+            const calendarDays = generateCalendarDays();
+            
+            const handleDayClick = (day) => {
+                setSelectedDays(prev => {
+                    if (prev.includes(day.date)) {
+                        return prev.filter(d => d !== day.date);
+                    } else {
+                        return [...prev, day.date].sort((a, b) => a - b);
+                    }
+                });
+            };
+            
+            const openInputModal = () => {
+                if (selectedDays.length === 0) {
+                    alert('日付を選択してください');
+                    return;
+                }
+                setIsInputModalOpen(true);
+            };
+            
+            const closeInputModal = () => {
+                setIsInputModalOpen(false);
+                setScheduleTitle('');
+                setScheduleMemo('');
+            };
+            
+            const saveSchedule = () => {
+                if (!scheduleTitle.trim()) {
+                    alert('予定のタイトルを入力してください');
+                    return;
+                }
+                
+                const schedule = {
+                    title: scheduleTitle.trim(),
+                    memo: scheduleMemo.trim(),
+                    days: [...selectedDays]
+                };
+                
+                setSavedSchedule(schedule);
+                closeInputModal();
+            };
+            
+            const openModal = () => {
+                if (!savedSchedule) {
+                    alert('まず予定を作成してください');
+                    return;
+                }
+                setIsModalOpen(true);
+            };
+            
+            const closeModal = () => {
+                setIsModalOpen(false);
+            };
+            
+            const getDayRangeText = () => {
+                if (!savedSchedule || savedSchedule.days.length === 0) return '';
+                const sortedDays = [...savedSchedule.days].sort((a, b) => a - b);
+                const start = sortedDays[0];
+                const end = sortedDays[sortedDays.length - 1];
+                return start === end ? `${start}日の予定` : `${start}～${end}日の予定`;
+            };
+            
+            return (
+                <div className="test-container">
+                    {/* カレンダー表示 */}
+                    <div style={{ 
+                        background: 'white', 
+                        borderRadius: '20px', 
+                        padding: '24px', 
+                        marginBottom: '20px',
+                        maxWidth: '400px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+                    }}>
+                        <h2 style={{ textAlign: 'center', marginBottom: '20px', color: '#333' }}>
+                            6月 2025
+                        </h2>
+                        
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(7, 1fr)', 
+                            gap: '8px',
+                            marginBottom: '20px'
+                        }}>
+                            {['日', '月', '火', '水', '木', '金', '土'].map(day => (
+                                <div key={day} style={{ 
+                                    textAlign: 'center', 
+                                    padding: '8px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    color: '#666'
+                                }}>
+                                    {day}
+                                </div>
+                            ))}
+                            
+                            {calendarDays.map((day, index) => (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(day)}
+                                    style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        background: selectedDays.includes(day.date) ? '#f59e0b' : 'transparent',
+                                        color: selectedDays.includes(day.date) ? 'white' : '#333',
+                                        border: selectedDays.includes(day.date) ? '2px solid #f59e0b' : '2px solid transparent',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {day.date}
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div style={{ textAlign: 'center' }}>
+                            <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+                                選択された日付: {selectedDays.length > 0 ? selectedDays.join(', ') + '日' : 'なし'}
+                            </p>
+                            <button 
+                                className="test-button" 
+                                onClick={openInputModal}
+                                style={{ marginRight: '10px' }}
+                            >
+                                予定を作成
+                            </button>
+                            <button className="test-button" onClick={openModal}>
+                                予定を表示
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 入力モーダル */}
+                    <div className={`modal-overlay ${isInputModalOpen ? 'active' : ''}`}>
+                        <div className="modal-container">
+                            <div className="modal-header">
+                                <h3 className="modal-title">予定を作成</h3>
+                                <button className="close-button" onClick={closeInputModal}>
+                                    ×
+                                </button>
+                            </div>
+                            
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                    予定のタイトル *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={scheduleTitle}
+                                    onChange={(e) => setScheduleTitle(e.target.value)}
+                                    placeholder="例: 外出（散歩）"
+                                    style={{
+                                        width: 'calc(100% - 24px)',
+                                        padding: '12px',
+                                        border: '2px solid #e5e7eb',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        transition: 'border-color 0.2s ease',
+                                        boxSizing: 'border-box'
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
+                                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                                />
+                            </div>
+                            
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>
+                                    メモ
+                                </label>
+                                <textarea
+                                    value={scheduleMemo}
+                                    onChange={(e) => setScheduleMemo(e.target.value)}
+                                    placeholder="詳細な内容やメモを入力してください"
+                                    rows={3}
+                                    style={{
+                                        width: 'calc(100% - 24px)',
+                                        padding: '12px',
+                                        border: '2px solid #e5e7eb',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        resize: 'vertical',
+                                        transition: 'border-color 0.2s ease',
+                                        boxSizing: 'border-box'
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
+                                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                                />
+                            </div>
+                            
+                            <div style={{ textAlign: 'center' }}>
+                                <button 
+                                    onClick={saveSchedule}
+                                    style={{
+                                        background: '#f59e0b',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        fontSize: '16px',
+                                        cursor: 'pointer',
+                                        marginRight: '10px'
+                                    }}
+                                >
+                                    保存
+                                </button>
+                                <button 
+                                    onClick={closeInputModal}
+                                    style={{
+                                        background: '#6b7280',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        fontSize: '16px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    キャンセル
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* 表示モーダル */}
+                    <div className={`modal-overlay ${isModalOpen ? 'active' : ''}`}>
+                        <div className="modal-container">
+                            <div className="modal-header">
+                                <h3 className="modal-title">{getDayRangeText()}</h3>
+                                <button className="close-button" onClick={closeModal}>
+                                    ×
+                                </button>
+                            </div>
+                            
+                            <div className="schedule-details">
+                                {savedSchedule && (
+                                    <>
+                                        <h4 className="details-title">{savedSchedule.title}</h4>
+                                        {savedSchedule.memo && (
+                                            <p style={{ 
+                                                fontSize: '14px', 
+                                                color: '#666', 
+                                                lineHeight: '1.5',
+                                                margin: '0 0 16px 0',
+                                                padding: '12px',
+                                                background: '#f9fafb',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e5e7eb'
+                                            }}>
+                                                {savedSchedule.memo}
+                                            </p>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        ReactDOM.render(<ScheduleModal />, document.getElementById('root'));
+    </script>
+</body>
+</html>

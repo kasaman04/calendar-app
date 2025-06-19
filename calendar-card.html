@@ -1726,10 +1726,14 @@
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
                                                     top: `${startRow * 48 + 35 + cumulativeOffset + layerOffset}px`,
-                                                    cursor: 'pointer'
+                                                    cursor: 'help'
                                                 }}
-                                                title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                onClick={() => showScheduleDetails(schedule)}
+                                                title={`ダブルクリックで詳細表示: ${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                onDoubleClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    showScheduleDetails(schedule); 
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
                                             />
                                         );
                                     } else {
@@ -1754,10 +1758,14 @@
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
                                                         top: `${r * 48 + 35 + rowCumulativeOffset + layerOffset}px`,
-                                                        cursor: 'pointer'
+                                                        cursor: 'help'
                                                     }}
-                                                    title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                    onClick={() => showScheduleDetails(schedule)}
+                                                    title={`ダブルクリックで詳細表示: ${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
+                                                    onDoubleClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        showScheduleDetails(schedule); 
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
                                                 />
                                             );
                                         }

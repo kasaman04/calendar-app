@@ -25,7 +25,12 @@
       "Bash(hostname:*)",
       "Bash(git reset:*)",
       "Bash(cp:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(tsc --noEmit)",
+      "Bash(./node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(node:*)",
+      "Bash(./node_modules/typescript/bin/tsc --version)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
