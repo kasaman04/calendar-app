@@ -1758,15 +1758,9 @@
                                                 style={{
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
-                                                    top: `${startRow * 48 + 35 + cumulativeOffset + layerOffset}px`,
-                                                    cursor: 'help'
+                                                    top: `${startRow * 48 + 35 + cumulativeOffset + layerOffset}px`
                                                 }}
-                                                title={`ダブルクリックで詳細表示: ${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                onDoubleClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    alert(`スケジュール: ${schedule.title}`); 
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
+                                                title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
                                             />
                                         );
                                     } else {
@@ -1790,15 +1784,9 @@
                                                     style={{
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
-                                                        top: `${r * 48 + 35 + rowCumulativeOffset + layerOffset}px`,
-                                                        cursor: 'help'
+                                                        top: `${r * 48 + 35 + rowCumulativeOffset + layerOffset}px`
                                                     }}
-                                                    title={`ダブルクリックで詳細表示: ${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                    onDoubleClick={(e) => { 
-                                                        e.stopPropagation(); 
-                                                        alert(`スケジュール: ${schedule.title}`); 
-                                                    }}
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
                                                 />
                                             );
                                         }
