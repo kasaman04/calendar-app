@@ -1604,7 +1604,12 @@
                                         transition: 'all 0.2s ease'
                                     }}
                                 >
-                                    LONG-TERM ({Object.keys(longSchedules).length})
+                                    LONG-TERM ({(() => {
+                                        const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                                        return Object.values(longSchedules).filter(schedule => {
+                                            return schedule.days && schedule.days.some(day => day.startsWith(currentYearMonth));
+                                        }).length;
+                                    })()})
                                 </div>
                             </div>
                         )}
@@ -1762,21 +1767,33 @@
                                     color: 'rgba(255, 255, 255, 0.6)',
                                     marginBottom: '8px'
                                 }}>
-                                    長期予定: {Object.keys(longSchedules).length}件の予定があります
+                                    長期予定: {(() => {
+                                        const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                                        const filteredCount = Object.values(longSchedules).filter(schedule => {
+                                            return schedule.days && schedule.days.some(day => day.startsWith(currentYearMonth));
+                                        }).length;
+                                        return filteredCount;
+                                    })()}件の予定があります
                                 </div>
                                 
-                                {Object.keys(longSchedules).length === 0 ? (
-                                    <div style={{
-                                        fontSize: '12px',
-                                        color: 'rgba(255, 255, 255, 0.5)',
-                                        textAlign: 'center',
-                                        padding: '20px',
-                                        fontStyle: 'italic'
-                                    }}>
-                                        長期予定はありません
-                                    </div>
-                                ) : (
-                                    Object.values(longSchedules).map((schedule, index) => (
+                                {(() => {
+                                    const currentYearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                                    const filteredSchedules = Object.values(longSchedules).filter(schedule => {
+                                        return schedule.days && schedule.days.some(day => day.startsWith(currentYearMonth));
+                                    });
+                                    
+                                    return filteredSchedules.length === 0 ? (
+                                        <div style={{
+                                            fontSize: '12px',
+                                            color: 'rgba(255, 255, 255, 0.5)',
+                                            textAlign: 'center',
+                                            padding: '20px',
+                                            fontStyle: 'italic'
+                                        }}>
+                                            この月に長期予定はありません
+                                        </div>
+                                    ) : (
+                                        filteredSchedules.map((schedule, index) => (
                                         <div key={schedule.id} style={{
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             borderRadius: '8px',
@@ -1825,8 +1842,9 @@
                                                 </div>
                                             )}
                                         </div>
-                                    ))
-                                )}
+                                        ))
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>
