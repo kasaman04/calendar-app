@@ -1788,8 +1788,18 @@
                                                 fontSize: '13px',
                                                 fontWeight: '600',
                                                 color: 'rgba(255, 255, 255, 0.9)',
-                                                marginBottom: '4px'
+                                                marginBottom: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
                                             }}>
+                                                <div style={{
+                                                    width: '12px',
+                                                    height: '12px',
+                                                    backgroundColor: schedule.category === 'private' ? '#10b981' : '#f59e0b',
+                                                    borderRadius: '2px',
+                                                    flexShrink: 0
+                                                }}></div>
                                                 {schedule.title}
                                             </div>
                                             
