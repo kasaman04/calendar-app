@@ -1553,30 +1553,8 @@
                         background: 'rgba(0, 0, 0, 0.1)',
                         flex: '0 0 auto'
                     }}>
-                        <div
-                            onClick={() => {
-                                const currentMonthSchedules = getScheduledDays();
-                                console.log('予定一覧クリック', currentMonthSchedules);
-                                setShowScheduleList(!showScheduleList);
-                            }}
-                            style={{
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: 'rgba(255, 255, 255, 0.9)',
-                                marginBottom: showScheduleList ? '12px' : '0',
-                                textAlign: 'center',
-                                cursor: 'pointer',
-                                padding: '8px',
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                borderRadius: '8px',
-                                transition: 'background-color 0.2s ease'
-                            }}
-                        >
-                            予定一覧 ({getScheduledDays().length + Object.keys(longSchedules).length}件) {showScheduleList ? '▼' : '▶'}
-                        </div>
-
                         {/* タブ切り替えUI */}
-                        {showScheduleList && (
+                        {(
                             <div style={{
                                 display: 'flex',
                                 marginBottom: '12px',
@@ -1629,7 +1607,7 @@
                             デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
                         </div>
                         
-                        {showScheduleList && scheduleListTab === 'oneday' && (
+                        {scheduleListTab === 'oneday' && (
                             <div style={{
                                 paddingRight: '4px'
                             }}>
@@ -1765,7 +1743,7 @@
                         )}
 
                         {/* LONG-TERM表示 */}
-                        {showScheduleList && scheduleListTab === 'longterm' && (
+                        {scheduleListTab === 'longterm' && (
                             <div style={{
                                 paddingRight: '4px'
                             }}>
