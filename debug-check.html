@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        console.log('Testing if calendar-card.html can be loaded...');
+        
+        // Try to load the main calendar file and catch any syntax errors
+        fetch('calendar-card.html')
+            .then(response => response.text())
+            .then(html => {
+                console.log('HTML loaded successfully, length:', html.length);
+                
+                // Extract the script content and test it
+                const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+                if (scriptMatch) {
+                    const scriptContent = scriptMatch[1];
+                    console.log('Script content extracted, testing syntax...');
+                    
+                    // Try to create a function with the script content to test syntax
+                    try {
+                        new Function(scriptContent);
+                        console.log('✅ No obvious syntax errors detected');
+                    } catch (error) {
+                        console.error('❌ Syntax error found:', error.message);
+                        console.error('Error details:', error);
+                    }
+                } else {
+                    console.log('No script tag found');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load HTML:', error);
+            });
+    </script>
+</head>
+<body>
+    <h1>Debug Check</h1>
+    <p>Check console for results</p>
+</body>
+</html>

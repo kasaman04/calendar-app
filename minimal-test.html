@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        // Minimal test of the problematic area structure
+        
+        const { useState } = React;
+        
+        const TestComponent = () => {
+            const [scheduleListTab, setScheduleListTab] = useState('oneday');
+            const [timeSlots, setTimeSlots] = useState({});
+            
+            const getScheduledDays = () => [];
+            const getLongTermSchedules = () => [];
+            
+            // Test the exact structure that might be causing issues
+            return (
+                <div style={{ backgroundColor: '#3182CE', padding: '20px', color: 'white' }}>
+                    <h1>Minimal Structure Test</h1>
+                    
+                    {/* Test the problematic conditional structure */}
+                    <div style={{
+                        paddingRight: '4px'
+                    }}>
+                        {/* one day タブの表示 */}
+                        {scheduleListTab === 'oneday' && Object.keys(timeSlots).length > 0 && (
+                            <>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    marginBottom: '8px'
+                                }}>
+                                    予定詳細: {getScheduledDays().length}日分の予定があります
+                                </div>
+                                {getScheduledDays().length > 0 ? getScheduledDays().map((dayData, index) => (
+                                    <div key={index}>Day {index}</div>
+                                )) : (
+                                    <div style={{
+                                        textAlign: 'center',
+                                        fontSize: '12px',
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        padding: '20px'
+                                    }}>
+                                        この月に1日の予定はありません
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        
+                        {/* one day予定が存在しない場合の空状態表示 */}
+                        {scheduleListTab === 'oneday' && Object.keys(timeSlots).length === 0 && (
+                            <div style={{
+                                textAlign: 'center',
+                                fontSize: '12px',
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                padding: '20px'
+                            }}>
+                                この月に1日の予定はありません
+                            </div>
+                        )}
+                        
+                        {/* LONG-TERM タブの表示 */}
+                        {scheduleListTab === 'longterm' && (
+                            <>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    marginBottom: '8px'
+                                }}>
+                                    長期スケジュール: {getLongTermSchedules().length}件の予定があります
+                                </div>
+                                {getLongTermSchedules().map((schedule, index) => (
+                                    <div key={index}>Long term schedule {index}</div>
+                                ))}
+                                
+                                {/* 長期スケジュールが存在しない場合の表示 */}
+                                {getLongTermSchedules().length === 0 && (
+                                    <div style={{
+                                        textAlign: 'center',
+                                        fontSize: '12px',
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        padding: '20px'
+                                    }}>
+                                        この月に長期スケジュールはありません
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<TestComponent />, document.getElementById('root'));
+    </script>
+</body>
+</html>

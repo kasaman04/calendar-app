@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const TestComponent = () => {
+            const showScheduleList = true;
+            const scheduleListTab = 'oneday';
+            const getScheduledDays = () => [{ date: '2025-06-19', slots: [] }];
+            const getLongTermSchedules = () => [];
+            
+            return (
+                <div>
+                    {/* Test the structure around the problematic area */}
+                    <div style={{
+                        padding: '16px',
+                        marginTop: '8px',
+                        marginBottom: '100px',
+                        minHeight: '60px',
+                        background: 'rgba(0, 0, 0, 0.1)',
+                        flex: '0 0 auto'
+                    }}>
+                        <div style={{
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            cursor: 'pointer',
+                            padding: '8px 0',
+                            userSelect: 'none',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            transition: 'background-color 0.2s ease'
+                        }}>
+                            予定一覧 ({scheduleListTab === 'oneday' ? getScheduledDays().length : getLongTermSchedules().length}件) {showScheduleList ? '▼' : '▶'}
+                        </div>
+                        
+                        {/* Test the conditional structure */}
+                        <div style={{
+                            paddingRight: '4px'
+                        }}>
+                            {/* one day タブの表示 */}
+                            {scheduleListTab === 'oneday' && Object.keys({}).length > 0 && (
+                                <>
+                                    <div>Test content</div>
+                                </>
+                            )}
+                            
+                            {/* LONG-TERM タブの表示 */}
+                            {scheduleListTab === 'longterm' && (
+                                <>
+                                    <div>Long term test</div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<TestComponent />, document.getElementById('root'));
+    </script>
+</body>
+</html>
