@@ -433,6 +433,7 @@
             const [showActivityMenu, setShowActivityMenu] = useState(false);
             const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
             const [showScheduleList, setShowScheduleList] = useState(false);
+            const [scheduleListTab, setScheduleListTab] = useState('oneday');
             const [showPhotoArea, setShowPhotoArea] = useState(true);
             const [showHideConfirm, setShowHideConfirm] = useState(false);
             const [selectedActivity, setSelectedActivity] = useState(null);
@@ -1571,8 +1572,54 @@
                                 transition: 'background-color 0.2s ease'
                             }}
                         >
-                            予定一覧 ({getScheduledDays().length}件) {showScheduleList ? '▼' : '▶'}
+                            予定一覧 ({getScheduledDays().length + Object.keys(longSchedules).length}件) {showScheduleList ? '▼' : '▶'}
                         </div>
+
+                        {/* タブ切り替えUI */}
+                        {showScheduleList && (
+                            <div style={{
+                                display: 'flex',
+                                marginBottom: '12px',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                padding: '2px'
+                            }}>
+                                <div
+                                    onClick={() => setScheduleListTab('oneday')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '6px 12px',
+                                        fontSize: '12px',
+                                        fontWeight: '500',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        color: scheduleListTab === 'oneday' ? '#1a202c' : 'rgba(255, 255, 255, 0.7)',
+                                        background: scheduleListTab === 'oneday' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    ONE DAY ({getScheduledDays().length})
+                                </div>
+                                <div
+                                    onClick={() => setScheduleListTab('longterm')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '6px 12px',
+                                        fontSize: '12px',
+                                        fontWeight: '500',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        color: scheduleListTab === 'longterm' ? '#1a202c' : 'rgba(255, 255, 255, 0.7)',
+                                        background: scheduleListTab === 'longterm' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    LONG-TERM ({Object.keys(longSchedules).length})
+                                </div>
+                            </div>
+                        )}
                         
                         <div style={{
                             fontSize: '10px',
@@ -1582,7 +1629,7 @@
                             デバッグ情報: 表示月={year}年{month}月, この月の予定={getScheduledDays().length}件
                         </div>
                         
-                        {showScheduleList && Object.keys(timeSlots).length > 0 && (
+                        {showScheduleList && scheduleListTab === 'oneday' && (
                             <div style={{
                                 paddingRight: '4px'
                             }}>
@@ -1714,6 +1761,74 @@
                                         </div>
                                     );
                                 })}
+                            </div>
+                        )}
+
+                        {/* LONG-TERM表示 */}
+                        {showScheduleList && scheduleListTab === 'longterm' && (
+                            <div style={{
+                                paddingRight: '4px'
+                            }}>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    marginBottom: '8px'
+                                }}>
+                                    長期予定: {Object.keys(longSchedules).length}件の予定があります
+                                </div>
+                                
+                                {Object.keys(longSchedules).length === 0 ? (
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: 'rgba(255, 255, 255, 0.5)',
+                                        textAlign: 'center',
+                                        padding: '20px',
+                                        fontStyle: 'italic'
+                                    }}>
+                                        長期予定はありません
+                                    </div>
+                                ) : (
+                                    Object.values(longSchedules).map((schedule, index) => (
+                                        <div key={schedule.id} style={{
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            borderRadius: '8px',
+                                            padding: '12px',
+                                            marginBottom: '8px',
+                                            border: '1px solid rgba(255, 255, 255, 0.2)'
+                                        }}>
+                                            <div style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                marginBottom: '4px'
+                                            }}>
+                                                {schedule.title}
+                                            </div>
+                                            
+                                            <div style={{
+                                                fontSize: '11px',
+                                                color: 'rgba(255, 255, 255, 0.7)',
+                                                marginBottom: '6px'
+                                            }}>
+                                                期間: {schedule.startDate} ～ {schedule.endDate} ({schedule.days.length}日間)
+                                            </div>
+                                            
+                                            {schedule.memo && (
+                                                <div style={{
+                                                    fontSize: '11px',
+                                                    color: 'rgba(255, 255, 255, 0.6)',
+                                                    background: 'rgba(255, 255, 255, 0.05)',
+                                                    padding: '6px 8px',
+                                                    borderRadius: '4px',
+                                                    marginTop: '6px',
+                                                    fontStyle: 'italic'
+                                                }}>
+                                                    メモ: {schedule.memo}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         )}
                     </div>
