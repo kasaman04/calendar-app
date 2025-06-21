@@ -645,14 +645,14 @@
             };
 
             // TimeBar24 コンポーネント（インライン実装）
-            const TimeLabel = ({ index, text }) => (
+            const TimeLabel = ({ index, text, row = 0 }) => (
                 React.createElement('span', {
                     className: 'absolute text-sm font-medium text-gray-800',
                     style: { 
                         left: `${(index / 6) * 100}%`, 
                         transform: 'translateX(-50%)',
-                        top: '100%',
-                        marginTop: '4px'
+                        top: row === 0 ? 'calc(100% + 4px)' : 'calc(100% + 52px)',
+                        marginTop: '0px'
                     }
                 }, text)
             );
@@ -662,39 +662,88 @@
                     className: 'relative w-full',
                     style: { marginBottom: '8px' }
                 }, [
-                    // メインのタイムバー
+                    // メインのタイムバー（2段構造）
                     React.createElement('div', {
-                        key: 'bar',
-                        className: 'grid grid-cols-6 gap-0',
+                        key: 'bar-container',
                         style: {
-                            height: '12px',
-                            borderRadius: '9999px',
-                            border: '1px solid #343A40',
-                            backgroundColor: 'transparent'
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '24px'
                         }
-                    }, Array.from({ length: 6 }, (_, index) => 
+                    }, [
+                        // 上段（0-5スロット: 0-12時）
                         React.createElement('div', {
-                            key: index,
-                            onClick: () => handleSlotClick(index),
+                            key: 'bar-top',
+                            className: 'grid grid-cols-6 gap-0',
                             style: {
-                                height: '100%',
-                                backgroundColor: getSlotColor(index),
-                                borderRight: index < 5 ? '1px solid #343A40' : 'none',
-                                borderTopLeftRadius: index === 0 ? '9999px' : '0',
-                                borderBottomLeftRadius: index === 0 ? '9999px' : '0',
-                                borderTopRightRadius: index === 5 ? '9999px' : '0',
-                                borderBottomRightRadius: index === 5 ? '9999px' : '0',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.2s ease'
+                                height: '18px',
+                                borderRadius: '9999px',
+                                border: '1px solid #343A40',
+                                backgroundColor: 'transparent',
+                                overflow: 'hidden'
                             }
-                        })
-                    )),
-                    // タイムラベル
-                    ...['4', '8', '12', '16', '20'].map((time, index) => 
+                        }, Array.from({ length: 6 }, (_, index) => 
+                            React.createElement('div', {
+                                key: index,
+                                onClick: () => handleSlotClick(index),
+                                style: {
+                                    height: '100%',
+                                    backgroundColor: getSlotColor(index),
+                                    borderRight: index < 5 ? '1px solid #343A40' : 'none',
+                                    borderTopLeftRadius: index === 0 ? '9999px' : '0',
+                                    borderBottomLeftRadius: index === 0 ? '9999px' : '0',
+                                    borderTopRightRadius: index === 5 ? '9999px' : '0',
+                                    borderBottomRightRadius: index === 5 ? '9999px' : '0',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s ease'
+                                }
+                            })
+                        )),
+                        // 下段（6-11スロット: 12-24時）
+                        React.createElement('div', {
+                            key: 'bar-bottom',
+                            className: 'grid grid-cols-6 gap-0',
+                            style: {
+                                height: '18px',
+                                borderRadius: '9999px',
+                                border: '1px solid #343A40',
+                                backgroundColor: 'transparent',
+                                overflow: 'hidden'
+                            }
+                        }, Array.from({ length: 6 }, (_, index) => 
+                            React.createElement('div', {
+                                key: index + 6,
+                                onClick: () => handleSlotClick(index + 6),
+                                style: {
+                                    height: '100%',
+                                    backgroundColor: getSlotColor(index + 6),
+                                    borderRight: index < 5 ? '1px solid #343A40' : 'none',
+                                    borderTopLeftRadius: index === 0 ? '9999px' : '0',
+                                    borderBottomLeftRadius: index === 0 ? '9999px' : '0',
+                                    borderTopRightRadius: index === 5 ? '9999px' : '0',
+                                    borderBottomRightRadius: index === 5 ? '9999px' : '0',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s ease'
+                                }
+                            })
+                        ))
+                    ]),
+                    // タイムラベル - 上段（2, 4, 6, 8, 10）
+                    ...['2', '4', '6', '8', '10'].map((time, index) => 
                         React.createElement(TimeLabel, {
-                            key: time,
-                            index: index + 1,
-                            text: time
+                            key: `top-${time}`,
+                            index: index + 0.5,
+                            text: time,
+                            row: 0
+                        })
+                    ),
+                    // タイムラベル - 下段（14, 16, 18, 20, 22）
+                    ...['14', '16', '18', '20', '22'].map((time, index) => 
+                        React.createElement(TimeLabel, {
+                            key: `bottom-${time}`,
+                            index: index + 0.5,
+                            text: time,
+                            row: 1
                         })
                     )
                 ])
@@ -936,7 +985,7 @@
                     if (keyYearMonth === currentYearMonth) {
                         const date = `${keyYear}-${keyMonth}-${day}`;
                         if (!daysWithSchedules[date]) {
-                            daysWithSchedules[date] = Array(6).fill(null);
+                            daysWithSchedules[date] = Array(12).fill(null);
                         }
                         daysWithSchedules[date][parseInt(slotIndex)] = timeSlots[key];
                     }
@@ -1002,25 +1051,54 @@
                         }
                     }, `${parseInt(date.split('-')[2])}日`),
                     React.createElement('div', {
-                        key: 'timeline',
-                        className: 'grid grid-cols-6 gap-0',
+                        key: 'timeline-container',
                         style: {
-                            height: '8px',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            overflow: 'hidden'
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px'
                         }
-                    }, slots.map((slot, index) => {
-                        console.log(`Slot ${index}:`, slot); // デバッグ用
-                        return React.createElement('div', {
-                            key: index,
+                    }, [
+                        // 上段（0-5時間）
+                        React.createElement('div', {
+                            key: 'timeline-top',
+                            className: 'grid grid-cols-6 gap-0',
                             style: {
-                                height: '100%',
-                                backgroundColor: getSlotColor(slot),
-                                borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
+                                height: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                overflow: 'hidden'
                             }
-                        });
-                    }))
+                        }, (slots || []).slice(0, 6).map((slot, index) => {
+                            return React.createElement('div', {
+                                key: index,
+                                style: {
+                                    height: '100%',
+                                    backgroundColor: getSlotColor(slot),
+                                    borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
+                                }
+                            });
+                        })),
+                        // 下段（6-11時間）
+                        React.createElement('div', {
+                            key: 'timeline-bottom',
+                            className: 'grid grid-cols-6 gap-0',
+                            style: {
+                                height: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                overflow: 'hidden'
+                            }
+                        }, slots.slice(6, 12).map((slot, index) => {
+                            return React.createElement('div', {
+                                key: index + 6,
+                                style: {
+                                    height: '100%',
+                                    backgroundColor: getSlotColor(slot),
+                                    borderRight: index < 5 ? '1px solid rgba(255, 255, 255, 0.3)' : 'none'
+                                }
+                            });
+                        }))
+                    ])
                 ]);
             };
             
