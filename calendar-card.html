@@ -1042,7 +1042,7 @@
             };
 
             // タッチイベントとマウスイベントを使用してスワイプ判定を実装
-            const handleTouchStart = (e, dayData) => {
+            const handleTouchStart = (e, itemData, itemType = 'oneday') => {
                 const touch = e.touches[0];
                 const startX = touch.clientX;
                 const startY = touch.clientY;
@@ -1084,7 +1084,11 @@
 
                     if (isSwipeActive && distanceX > 50) {
                         // 削除実行
-                        handleSwipeDelete(dayData, element);
+                        if (itemType === 'longterm') {
+                            handleLongScheduleSwipeDelete(itemData, element);
+                        } else {
+                            handleSwipeDelete(itemData, element);
+                        }
                     } else {
                         // 元の位置に戻す
                         element.style.transition = 'transform 0.3s ease-out, background 0.3s ease-out';
@@ -1100,7 +1104,7 @@
                 document.addEventListener('touchend', handleTouchEnd);
             };
 
-            const handleMouseDown = (e, dayData) => {
+            const handleMouseDown = (e, itemData, itemType = 'oneday') => {
                 const startX = e.clientX;
                 const startY = e.clientY;
                 const element = e.currentTarget;
@@ -1138,7 +1142,11 @@
 
                     if (isSwipeActive && distanceX > 50) {
                         // 削除実行
-                        handleSwipeDelete(dayData, element);
+                        if (itemType === 'longterm') {
+                            handleLongScheduleSwipeDelete(itemData, element);
+                        } else {
+                            handleSwipeDelete(itemData, element);
+                        }
                     } else {
                         // 元の位置に戻す
                         element.style.transition = 'transform 0.3s ease-out, background 0.3s ease-out';
@@ -1178,6 +1186,29 @@
                         });
                         console.log('更新されたスロット:', newSlots);
                         return newSlots;
+                    });
+                }, 300);
+            };
+
+            // 長期スケジュール用の削除処理
+            const handleLongScheduleSwipeDelete = (schedule, element) => {
+                // スワイプ音効果を再生
+                playSwipeSound();
+                
+                // 削除アニメーション：右にスライドしながらフェードアウト
+                element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                element.style.transform = 'translateX(100%)';
+                element.style.opacity = '0';
+                
+                console.log('長期スケジュール削除を実行します:', schedule.title);
+                
+                // アニメーション完了後に削除処理
+                setTimeout(() => {
+                    setLongSchedules(prev => {
+                        const newSchedules = { ...prev };
+                        delete newSchedules[schedule.id];
+                        console.log('長期スケジュール削除完了:', schedule.id);
+                        return newSchedules;
                     });
                 }, 300);
             };
@@ -1786,13 +1817,20 @@
                                         </div>
                                     ) : (
                                         filteredSchedules.map((schedule, index) => (
-                                        <div key={schedule.id} style={{
-                                            background: 'rgba(255, 255, 255, 0.1)',
-                                            borderRadius: '8px',
-                                            padding: '12px',
-                                            marginBottom: '8px',
-                                            border: '1px solid rgba(255, 255, 255, 0.2)'
-                                        }}>
+                                        <div 
+                                            key={schedule.id} 
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.1)',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                marginBottom: '8px',
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                cursor: 'pointer',
+                                                userSelect: 'none'
+                                            }}
+                                            onTouchStart={(e) => handleTouchStart(e, schedule, 'longterm')}
+                                            onMouseDown={(e) => handleMouseDown(e, schedule, 'longterm')}
+                                        >
                                             <div style={{
                                                 fontSize: '13px',
                                                 fontWeight: '600',
