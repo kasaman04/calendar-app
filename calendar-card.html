@@ -51,6 +51,14 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
+        .long-schedule-bar.work {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b); /* 黄色 - 仕事 */
+        }
+        
+        .long-schedule-bar.private {
+            background: linear-gradient(90deg, #10b981, #059669); /* 緑 - プライベート */
+        }
+        
         .day-selectable {
             position: relative;
             transition: all 0.2s ease;
@@ -445,6 +453,7 @@
             const [isSelecting, setIsSelecting] = useState(false);
             const [longSchedules, setLongSchedules] = useState({});
             const [showLongScheduleModal, setShowLongScheduleModal] = useState(false);
+            const [scheduleCategory, setScheduleCategory] = useState('work'); // 'work' or 'private'
             // 長期スケジュール入力は非制御コンポーネントで管理（window.longScheduleTitleInput, window.longScheduleMemoInput）
 
 
@@ -504,6 +513,7 @@
                     id: scheduleId,
                     title: titleValue.trim(),
                     memo: memoValue.trim(),
+                    category: scheduleCategory, // 'work' or 'private'
                     startDate: selectedDays[0]?.fullDate,
                     endDate: selectedDays[selectedDays.length - 1]?.fullDate,
                     days: selectedDays.map(d => d.fullDate)
@@ -1420,7 +1430,7 @@
                                         return (
                                             <div
                                                 key={`saved-bar-${schedule.id}-${idx}`}
-                                                className="long-schedule-bar"
+                                                className={`long-schedule-bar ${schedule.category || 'work'}`}
                                                 style={{
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
@@ -1445,7 +1455,7 @@
                                             barElements.push(
                                                 <div
                                                     key={`saved-bar-${schedule.id}-${idx}-${row}`}
-                                                    className="long-schedule-bar"
+                                                    className={`long-schedule-bar ${schedule.category || 'work'}`}
                                                     style={{
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
@@ -2078,6 +2088,58 @@
                                     {selectedDays.length > 0 && 
                                         `${selectedDays[0]?.date}日 〜 ${selectedDays[selectedDays.length - 1]?.date}日 (${selectedDays.length}日間)`
                                     }
+                                </div>
+                                
+                                {/* カテゴリ選択 */}
+                                <div style={{ 
+                                    marginBottom: '20px',
+                                    display: 'flex',
+                                    gap: '20px',
+                                    justifyContent: 'flex-start',
+                                    paddingLeft: '20px'
+                                }}>
+                                    <label style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        cursor: 'pointer',
+                                        fontSize: '16px',
+                                        fontWeight: '400',
+                                        color: '#333'
+                                    }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={scheduleCategory === 'work'}
+                                            onChange={() => setScheduleCategory('work')}
+                                            style={{
+                                                marginRight: '8px',
+                                                width: '18px',
+                                                height: '18px',
+                                                accentColor: '#f59e0b'
+                                            }}
+                                        />
+                                        仕事
+                                    </label>
+                                    <label style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        cursor: 'pointer',
+                                        fontSize: '16px',
+                                        fontWeight: '400',
+                                        color: '#333'
+                                    }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={scheduleCategory === 'private'}
+                                            onChange={() => setScheduleCategory('private')}
+                                            style={{
+                                                marginRight: '8px',
+                                                width: '18px',
+                                                height: '18px',
+                                                accentColor: '#10b981'
+                                            }}
+                                        />
+                                        プライベート
+                                    </label>
                                 </div>
                                 
                                 <div style={{ marginBottom: '20px' }}>
