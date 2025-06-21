@@ -1435,13 +1435,9 @@
                                                     left: `${(startCol / 7) * 100}%`,
                                                     width: `${((endCol - startCol + 1) / 7) * 100}%`,
                                                     top: `${startRow * 48 + 35}px`,
-                                                    cursor: 'pointer',
+                                                    cursor: 'default',
                                                 }}
                                                 title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    alert(`スケジュール: ${schedule.title}`);
-                                                }}
                                             />
                                         );
                                     } else {
@@ -1460,13 +1456,9 @@
                                                         left: `${(left / 7) * 100}%`,
                                                         width: `${((right - left + 1) / 7) * 100}%`,
                                                         top: `${row * 48 + 35}px`,
-                                                        cursor: 'pointer',
+                                                        cursor: 'default',
                                                     }}
                                                     title={`${schedule.title}${schedule.memo ? ` - ${schedule.memo}` : ''}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        alert(`スケジュール: ${schedule.title}`);
-                                                    }}
                                                 />
                                             );
                                         }
