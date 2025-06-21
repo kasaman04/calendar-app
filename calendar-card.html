@@ -645,17 +645,22 @@
             };
 
             // TimeBar24 コンポーネント（インライン実装）
-            const TimeLabel = ({ index, text, row = 0 }) => (
-                React.createElement('span', {
+            const TimeLabel = ({ index, text, row = 0 }) => {
+                // 6つのスロットの中央位置を正確に計算
+                // 各スロットの中央: 16.67%, 33.33%, 50%, 66.67%, 83.33%
+                const centerPositions = [16.67, 33.33, 50, 66.67, 83.33];
+                const leftPosition = centerPositions[index - 1] || 0;
+                
+                return React.createElement('span', {
                     className: 'absolute text-sm font-medium text-gray-800',
                     style: { 
-                        left: `${(index / 6) * 100}%`, 
+                        left: `${leftPosition}%`, 
                         transform: 'translateX(-50%)',
-                        top: row === 0 ? 'calc(100% + 4px)' : 'calc(100% + 52px)',
+                        top: row === 0 ? 'calc(50% - 14px)' : 'calc(100% + 2px)',
                         marginTop: '0px'
                     }
-                }, text)
-            );
+                }, text);
+            };
 
             const TimeBar24 = () => (
                 React.createElement('div', { 
@@ -668,7 +673,7 @@
                         style: {
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '24px'
+                            gap: '29px'
                         }
                     }, [
                         // 上段（0-5スロット: 0-12時）
@@ -732,7 +737,7 @@
                     ...['2', '4', '6', '8', '10'].map((time, index) => 
                         React.createElement(TimeLabel, {
                             key: `top-${time}`,
-                            index: index + 0.5,
+                            index: index + 1,
                             text: time,
                             row: 0
                         })
@@ -741,7 +746,7 @@
                     ...['14', '16', '18', '20', '22'].map((time, index) => 
                         React.createElement(TimeLabel, {
                             key: `bottom-${time}`,
-                            index: index + 0.5,
+                            index: index + 1,
                             text: time,
                             row: 1
                         })
