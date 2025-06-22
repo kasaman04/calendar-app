@@ -446,6 +446,27 @@
             const [showHideConfirm, setShowHideConfirm] = useState(false);
             const [selectedActivity, setSelectedActivity] = useState(null);
             const [activityMemos, setActivityMemos] = useState({});
+            const [repeatSchedules, setRepeatSchedules] = useState({});
+            
+            // 繰り返しスケジュールの保存・復元
+            React.useEffect(() => {
+                try {
+                    const saved = localStorage.getItem('calendarRepeatSchedules');
+                    if (saved) {
+                        setRepeatSchedules(JSON.parse(saved));
+                    }
+                } catch (error) {
+                    console.error('Failed to load repeat schedules:', error);
+                }
+            }, []);
+            
+            React.useEffect(() => {
+                try {
+                    localStorage.setItem('calendarRepeatSchedules', JSON.stringify(repeatSchedules));
+                } catch (error) {
+                    console.error('Failed to save repeat schedules:', error);
+                }
+            }, [repeatSchedules]);
             
             // 長期スケジュール関連の状態
             const [longScheduleMode, setLongScheduleMode] = useState(false);
@@ -768,6 +789,7 @@
                 // ローカル状態を使用
                 const [localMemos, setLocalMemos] = React.useState({});
                 const [localSelectedActivity, setLocalSelectedActivity] = React.useState(null);
+                const [localRepeatOptions, setLocalRepeatOptions] = React.useState({});
 
                 return React.createElement('div', {
                     style: {
@@ -896,6 +918,82 @@
                                         marginTop: '2px'
                                     }
                                 }, `${(localMemos[activity.key] || '').length}/100`)
+                            ]),
+                            
+                            // 繰り返しオプション（毎日・毎週チェックボックス）
+                            React.createElement('div', {
+                                key: 'repeat-options',
+                                style: {
+                                    marginTop: '8px',
+                                    display: 'flex',
+                                    gap: '12px',
+                                    alignItems: 'center'
+                                }
+                            }, [
+                                React.createElement('label', {
+                                    key: 'daily-label',
+                                    style: {
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        color: '#555'
+                                    }
+                                }, [
+                                    React.createElement('input', {
+                                        key: 'daily-checkbox',
+                                        type: 'checkbox',
+                                        checked: localRepeatOptions[activity.key]?.daily || false,
+                                        onChange: (e) => {
+                                            setLocalRepeatOptions(prev => ({
+                                                ...prev,
+                                                [activity.key]: {
+                                                    ...prev[activity.key],
+                                                    daily: e.target.checked,
+                                                    weekly: e.target.checked ? false : (prev[activity.key]?.weekly || false)
+                                                }
+                                            }));
+                                        },
+                                        style: {
+                                            margin: '0',
+                                            cursor: 'pointer'
+                                        }
+                                    }),
+                                    React.createElement('span', { key: 'daily-text' }, '毎日')
+                                ]),
+                                React.createElement('label', {
+                                    key: 'weekly-label',
+                                    style: {
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        color: '#555'
+                                    }
+                                }, [
+                                    React.createElement('input', {
+                                        key: 'weekly-checkbox',
+                                        type: 'checkbox',
+                                        checked: localRepeatOptions[activity.key]?.weekly || false,
+                                        onChange: (e) => {
+                                            setLocalRepeatOptions(prev => ({
+                                                ...prev,
+                                                [activity.key]: {
+                                                    ...prev[activity.key],
+                                                    weekly: e.target.checked,
+                                                    daily: e.target.checked ? false : (prev[activity.key]?.daily || false)
+                                                }
+                                            }));
+                                        },
+                                        style: {
+                                            margin: '0',
+                                            cursor: 'pointer'
+                                        }
+                                    }),
+                                    React.createElement('span', { key: 'weekly-text' }, '毎週')
+                                ])
                             ])
                         ])
                     ),
@@ -930,17 +1028,80 @@
                             key: 'submit',
                             onClick: () => {
                                 if (localSelectedActivity) {
-                                    // ローカル状態からグローバルに保存
                                     const dateKey = selectedDate?.fullDate;
+                                    const activityData = {
+                                        type: localSelectedActivity,
+                                        memo: (localMemos[localSelectedActivity] || '').trim()
+                                    };
+                                    
                                     if (dateKey && selectedSlotIndex !== null) {
-                                        setTimeSlots(prev => ({
-                                            ...prev,
-                                            [`${dateKey}-${selectedSlotIndex}`]: {
-                                                type: localSelectedActivity,
-                                                memo: (localMemos[localSelectedActivity] || '').trim()
-                                            }
-                                        }));
+                                        const repeatOption = localRepeatOptions[localSelectedActivity];
+                                        
+                                        if (repeatOption?.daily) {
+                                            // 毎日の繰り返し設定
+                                            const startDate = new Date(dateKey);
+                                            const today = new Date();
+                                            const endDate = new Date(today.getFullYear(), today.getMonth() + 3, today.getDate()); // 3ヶ月先まで
+                                            
+                                            // 繰り返しスケジュール情報を保存
+                                            const repeatId = `daily-${dateKey}-${selectedSlotIndex}-${Date.now()}`;
+                                            setRepeatSchedules(prev => ({
+                                                ...prev,
+                                                [repeatId]: {
+                                                    type: 'daily',
+                                                    startDate: dateKey,
+                                                    endDate: endDate.toISOString().split('T')[0],
+                                                    slotIndex: selectedSlotIndex,
+                                                    activity: activityData,
+                                                    createdAt: new Date().toISOString()
+                                                }
+                                            }));
+                                            
+                                            setTimeSlots(prev => {
+                                                const newSlots = { ...prev };
+                                                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                                                    const currentDateKey = d.toISOString().split('T')[0];
+                                                    newSlots[`${currentDateKey}-${selectedSlotIndex}`] = { ...activityData, repeatId };
+                                                }
+                                                return newSlots;
+                                            });
+                                        } else if (repeatOption?.weekly) {
+                                            // 毎週の繰り返し設定
+                                            const startDate = new Date(dateKey);
+                                            const today = new Date();
+                                            const endDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate()); // 6ヶ月先まで
+                                            
+                                            // 繰り返しスケジュール情報を保存
+                                            const repeatId = `weekly-${dateKey}-${selectedSlotIndex}-${Date.now()}`;
+                                            setRepeatSchedules(prev => ({
+                                                ...prev,
+                                                [repeatId]: {
+                                                    type: 'weekly',
+                                                    startDate: dateKey,
+                                                    endDate: endDate.toISOString().split('T')[0],
+                                                    slotIndex: selectedSlotIndex,
+                                                    activity: activityData,
+                                                    createdAt: new Date().toISOString()
+                                                }
+                                            }));
+                                            
+                                            setTimeSlots(prev => {
+                                                const newSlots = { ...prev };
+                                                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 7)) {
+                                                    const currentDateKey = d.toISOString().split('T')[0];
+                                                    newSlots[`${currentDateKey}-${selectedSlotIndex}`] = { ...activityData, repeatId };
+                                                }
+                                                return newSlots;
+                                            });
+                                        } else {
+                                            // 単発の設定
+                                            setTimeSlots(prev => ({
+                                                ...prev,
+                                                [`${dateKey}-${selectedSlotIndex}`]: activityData
+                                            }));
+                                        }
                                     }
+                                    
                                     setShowActivityMenu(false);
                                     setSelectedSlotIndex(null);
                                     setSelectedActivity(null);
