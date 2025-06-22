@@ -863,9 +863,86 @@
                                     style: {
                                         fontSize: '16px',
                                         fontWeight: '500',
-                                        color: '#333'
+                                        color: '#333',
+                                        flex: 1
                                     }
-                                }, activity.label)
+                                }, activity.label),
+                                
+                                // 毎日・毎週チェックボックス
+                                React.createElement('div', {
+                                    key: 'repeat-checkboxes',
+                                    style: {
+                                        display: 'flex',
+                                        gap: '8px',
+                                        alignItems: 'center'
+                                    },
+                                    onClick: (e) => e.stopPropagation() // クリックイベントの伝播を停止
+                                }, [
+                                    React.createElement('label', {
+                                        key: 'daily-label',
+                                        style: {
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            color: '#666'
+                                        }
+                                    }, [
+                                        React.createElement('input', {
+                                            key: 'daily-checkbox',
+                                            type: 'checkbox',
+                                            checked: localRepeatOptions[activity.key]?.daily || false,
+                                            onChange: (e) => {
+                                                setLocalRepeatOptions(prev => ({
+                                                    ...prev,
+                                                    [activity.key]: {
+                                                        ...prev[activity.key],
+                                                        daily: e.target.checked,
+                                                        weekly: e.target.checked ? false : (prev[activity.key]?.weekly || false)
+                                                    }
+                                                }));
+                                            },
+                                            style: {
+                                                margin: '0',
+                                                cursor: 'pointer'
+                                            }
+                                        }),
+                                        React.createElement('span', { key: 'daily-text' }, '毎日')
+                                    ]),
+                                    React.createElement('label', {
+                                        key: 'weekly-label',
+                                        style: {
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            color: '#666'
+                                        }
+                                    }, [
+                                        React.createElement('input', {
+                                            key: 'weekly-checkbox',
+                                            type: 'checkbox',
+                                            checked: localRepeatOptions[activity.key]?.weekly || false,
+                                            onChange: (e) => {
+                                                setLocalRepeatOptions(prev => ({
+                                                    ...prev,
+                                                    [activity.key]: {
+                                                        ...prev[activity.key],
+                                                        weekly: e.target.checked,
+                                                        daily: e.target.checked ? false : (prev[activity.key]?.daily || false)
+                                                    }
+                                                }));
+                                            },
+                                            style: {
+                                                margin: '0',
+                                                cursor: 'pointer'
+                                            }
+                                        }),
+                                        React.createElement('span', { key: 'weekly-text' }, '毎週')
+                                    ])
+                                ])
                             ]),
                             
                             // メモ入力欄（ローカル状態を使用）
@@ -918,82 +995,6 @@
                                         marginTop: '2px'
                                     }
                                 }, `${(localMemos[activity.key] || '').length}/100`)
-                            ]),
-                            
-                            // 繰り返しオプション（毎日・毎週チェックボックス）
-                            React.createElement('div', {
-                                key: 'repeat-options',
-                                style: {
-                                    marginTop: '8px',
-                                    display: 'flex',
-                                    gap: '12px',
-                                    alignItems: 'center'
-                                }
-                            }, [
-                                React.createElement('label', {
-                                    key: 'daily-label',
-                                    style: {
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: 'pointer',
-                                        fontSize: '13px',
-                                        color: '#555'
-                                    }
-                                }, [
-                                    React.createElement('input', {
-                                        key: 'daily-checkbox',
-                                        type: 'checkbox',
-                                        checked: localRepeatOptions[activity.key]?.daily || false,
-                                        onChange: (e) => {
-                                            setLocalRepeatOptions(prev => ({
-                                                ...prev,
-                                                [activity.key]: {
-                                                    ...prev[activity.key],
-                                                    daily: e.target.checked,
-                                                    weekly: e.target.checked ? false : (prev[activity.key]?.weekly || false)
-                                                }
-                                            }));
-                                        },
-                                        style: {
-                                            margin: '0',
-                                            cursor: 'pointer'
-                                        }
-                                    }),
-                                    React.createElement('span', { key: 'daily-text' }, '毎日')
-                                ]),
-                                React.createElement('label', {
-                                    key: 'weekly-label',
-                                    style: {
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: 'pointer',
-                                        fontSize: '13px',
-                                        color: '#555'
-                                    }
-                                }, [
-                                    React.createElement('input', {
-                                        key: 'weekly-checkbox',
-                                        type: 'checkbox',
-                                        checked: localRepeatOptions[activity.key]?.weekly || false,
-                                        onChange: (e) => {
-                                            setLocalRepeatOptions(prev => ({
-                                                ...prev,
-                                                [activity.key]: {
-                                                    ...prev[activity.key],
-                                                    weekly: e.target.checked,
-                                                    daily: e.target.checked ? false : (prev[activity.key]?.daily || false)
-                                                }
-                                            }));
-                                        },
-                                        style: {
-                                            margin: '0',
-                                            cursor: 'pointer'
-                                        }
-                                    }),
-                                    React.createElement('span', { key: 'weekly-text' }, '毎週')
-                                ])
                             ])
                         ])
                     ),
