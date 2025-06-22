@@ -1984,12 +1984,12 @@
                                     const scheduleItems = [];
                                     
                                     // 現在の日付の予定を取得
-                                    for (let i = 0; i < 6; i++) {
+                                    for (let i = 0; i < 12; i++) {
                                         const slotKey = `${dateKey}-${i}`;
                                         const activity = timeSlots[slotKey];
                                         if (activity) {
-                                            const startHour = i * 4;
-                                            const endHour = (i + 1) * 4;
+                                            const startHour = i * 2;
+                                            const endHour = (i + 1) * 2;
                                             const colors = {
                                                 work: '#ff9a9e',
                                                 rest: '#a8e6cf',
