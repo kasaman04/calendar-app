@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calendar Card UI</title>
+    
+    <!-- PWA設定 -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#3182CE">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="カレンダーアプリ">
+    <meta name="description" content="繰り返しスケジュール機能付きカレンダーアプリ">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMzMTgyQ0UiLz4KPHJlY3QgeD0iMjQiIHk9IjQ4IiB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9IndoaXRlIi8+CjxyZWN0IHg9IjQwIiB5PSI2NCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iIzMxODJDRSIvPgo8cmVjdCB4PSI3MiIgeT0iNjQiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiMzMTgyQ0UiLz4KPHJlY3QgeD0iMTA0IiB5PSI2NCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iIzMxODJDRSIvPgo8cmVjdCB4PSIxMzYiIHk9IjY0IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHJ4PSIyIiBmaWxsPSIjMzE4MkNFIi8+CjxyZWN0IHg9IjQwIiB5PSI5NiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iI0ZGOUE5RSIvPgo8cmVjdCB4PSI3MiIgeT0iOTYiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiNBOEU2Q0YiLz4KPHJlY3QgeD0iMTA0IiB5PSI5NiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iI0ZGRDNBNSIvPgo8cmVjdCB4PSIxMzYiIHk9Ijk2IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHJ4PSIyIiBmaWxsPSIjQzdDRUVBIi8+CjxyZWN0IHg9IjQwIiB5PSIxMjgiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgcng9IjIiIGZpbGw9IiMzMTgyQ0UiLz4KPHJlY3QgeD0iNzIiIHk9IjEyOCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iIzMxODJDRSIvPgo8cGF0aCBkPSJNNTYgMzJWNDhNMTM2IDMyVjQ4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -2774,6 +2785,215 @@
         };
 
         ReactDOM.render(<CalendarApp />, document.getElementById('root'));
+    </script>
+    
+    <!-- Service Worker Registration & PWA機能 -->
+    <script>
+        // Service Worker登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                        
+                        // Service Worker更新の検知
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // 新しいバージョンが利用可能
+                                        if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
+                                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                            window.location.reload();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+                
+                // Service Workerがアクティブになったら更新
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (refreshing) return;
+                    window.location.reload();
+                    refreshing = true;
+                });
+            });
+        }
+        
+        let refreshing = false;
+        
+        // オフライン/オンライン状態の監視
+        let isOnline = navigator.onLine;
+        let offlineIndicator = null;
+        
+        function updateOnlineStatus() {
+            const wasOffline = !isOnline;
+            isOnline = navigator.onLine;
+            
+            if (!isOnline && !offlineIndicator) {
+                // オフライン表示を追加
+                offlineIndicator = document.createElement('div');
+                offlineIndicator.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        background: #ff6b6b;
+                        color: white;
+                        padding: 8px;
+                        text-align: center;
+                        font-size: 14px;
+                        z-index: 10000;
+                        font-family: 'Comfortaa', sans-serif;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    ">
+                        📡 オフラインモード - キャッシュからデータを表示中
+                    </div>
+                `;
+                document.body.appendChild(offlineIndicator);
+            } else if (isOnline && offlineIndicator) {
+                // オンライン復帰
+                if (wasOffline) {
+                    offlineIndicator.innerHTML = `
+                        <div style="
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            background: #51cf66;
+                            color: white;
+                            padding: 8px;
+                            text-align: center;
+                            font-size: 14px;
+                            z-index: 10000;
+                            font-family: 'Comfortaa', sans-serif;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        ">
+                            ✅ オンラインに復帰しました
+                        </div>
+                    `;
+                    
+                    // 2秒後に表示を削除
+                    setTimeout(() => {
+                        if (offlineIndicator) {
+                            document.body.removeChild(offlineIndicator);
+                            offlineIndicator = null;
+                        }
+                    }, 2000);
+                } else {
+                    document.body.removeChild(offlineIndicator);
+                    offlineIndicator = null;
+                }
+            }
+        }
+        
+        // オンライン/オフライン状態の変化を監視
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // 初期状態をチェック
+        updateOnlineStatus();
+        
+        // PWAインストールプロンプト
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // デフォルトのインストールプロンプトを抑制
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // カスタムインストールボタンを表示
+            if (!localStorage.getItem('pwa-install-dismissed')) {
+                showInstallPrompt();
+            }
+        });
+        
+        function showInstallPrompt() {
+            const installPrompt = document.createElement('div');
+            installPrompt.innerHTML = `
+                <div style="
+                    position: fixed;
+                    bottom: 20px;
+                    left: 20px;
+                    right: 20px;
+                    background: white;
+                    border-radius: 12px;
+                    padding: 16px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 10001;
+                    font-family: 'Comfortaa', sans-serif;
+                    border: 2px solid #3182CE;
+                ">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="font-size: 20px;">📱</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; font-size: 16px;">アプリをインストール</div>
+                            <div style="color: #666; font-size: 13px;">ホーム画面に追加して、より便利に使えます</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="installPWA()" style="
+                            flex: 1;
+                            background: #3182CE;
+                            color: white;
+                            border: none;
+                            padding: 10px 16px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            cursor: pointer;
+                            font-family: inherit;
+                        ">インストール</button>
+                        <button onclick="dismissInstallPrompt()" style="
+                            background: #f8f9fa;
+                            color: #666;
+                            border: 1px solid #e5e7eb;
+                            padding: 10px 16px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            cursor: pointer;
+                            font-family: inherit;
+                        ">後で</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(installPrompt);
+            window.currentInstallPrompt = installPrompt;
+        }
+        
+        window.installPWA = function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA install accepted');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+            dismissInstallPrompt();
+        };
+        
+        window.dismissInstallPrompt = function() {
+            if (window.currentInstallPrompt) {
+                document.body.removeChild(window.currentInstallPrompt);
+                window.currentInstallPrompt = null;
+            }
+            localStorage.setItem('pwa-install-dismissed', 'true');
+        };
+        
+        // PWAがインストールされた時
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('PWA installed successfully');
+            localStorage.setItem('pwa-installed', 'true');
+        });
+        
+        console.log('PWA features initialized');
     </script>
 </body>
 </html>
