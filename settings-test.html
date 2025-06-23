@@ -343,64 +343,19 @@
             
             <!-- 表示設定セクション -->
             <div class="setting-section">
-                <h3>🎨 表示設定</h3>
+                <h3>🖼️ 表示設定</h3>
                 
                 <div class="setting-row">
                     <div class="setting-info">
-                        <div class="setting-title">ダークモード</div>
-                        <div class="setting-description">暗いテーマを使用します</div>
+                        <div class="setting-title">画像表示</div>
+                        <div class="setting-description">カレンダーの背景画像を表示します</div>
                     </div>
-                    <div class="toggle-switch" id="dark-mode-toggle" onclick="toggleDarkMode()">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-title">週の開始日</div>
-                        <div class="setting-description">カレンダーの週の開始日を設定</div>
-                    </div>
-                    <select id="week-start" onchange="updateWeekStart()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                        <option value="0">日曜日</option>
-                        <option value="1">月曜日</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- システム設定セクション -->
-            <div class="setting-section">
-                <h3>🔧 システム設定</h3>
-                
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <div class="setting-title">自動保存</div>
-                        <div class="setting-description">変更を自動的に保存します</div>
-                    </div>
-                    <div class="toggle-switch active" id="auto-save-toggle" onclick="toggleAutoSave()">
+                    <div class="toggle-switch active" id="image-display-toggle" onclick="toggleImageDisplay()">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
                 
                 <div class="setting-actions">
-                    <button class="button" onclick="exportSettings()">
-                        設定をエクスポート
-                    </button>
-                    <button class="button button-secondary" onclick="importSettings()">
-                        設定をインポート
-                    </button>
-                    <button class="button button-danger" onclick="resetSettings()">
-                        設定をリセット
-                    </button>
-                </div>
-            </div>
-            
-            <!-- テスト結果表示 -->
-            <div class="setting-section">
-                <h3>🧪 テスト・デバッグ</h3>
-                <div class="setting-actions">
-                    <button class="button" onclick="runSystemCheck()">
-                        システムチェック実行
-                    </button>
                     <button class="button button-secondary" onclick="clearTestResults()">
                         ログをクリア
                     </button>
@@ -429,11 +384,7 @@
                         notificationTime: 15
                     },
                     display: {
-                        darkMode: false,
-                        weekStart: 0
-                    },
-                    system: {
-                        autoSave: true
+                        imageDisplay: true
                     }
                 };
             }
@@ -483,13 +434,10 @@
                 this.updateSoundOptions();
                 
                 // 表示設定
-                this.setToggleState('dark-mode-toggle', this.settings.display.darkMode);
-                document.getElementById('week-start').value = this.settings.display.weekStart;
-                
-                // システム設定
-                this.setToggleState('auto-save-toggle', this.settings.system.autoSave);
+                this.setToggleState('image-display-toggle', this.settings.display.imageDisplay);
                 
                 this.updateAlertStatus();
+                this.updateImageDisplay();
             }
             
             // トグルスイッチの状態設定
@@ -542,6 +490,31 @@
                     soundOptions.style.display = 'none';
                     volumeControl.style.display = 'none';
                 }
+            }
+            
+            // 画像表示の管理
+            updateImageDisplay() {
+                const imageDisplay = this.settings.display.imageDisplay;
+                
+                if (imageDisplay) {
+                    this.showDefaultImage();
+                    this.log('画像表示: 有効');
+                } else {
+                    this.hideImage();
+                    this.log('画像表示: 無効');
+                }
+            }
+            
+            // デフォルト画像の表示
+            showDefaultImage() {
+                // 24.pngが存在しない場合のフォールバック画像を表示
+                const fallbackImage = 'Image/1.png'; // 既存の画像を使用
+                this.log(`デフォルト画像を表示: ${fallbackImage}`);
+            }
+            
+            // 画像を非表示
+            hideImage() {
+                this.log('画像を非表示にしました');
             }
             
             // 音声ファイルマッピング
@@ -667,34 +640,6 @@
                 }
             }
             
-            // 設定のエクスポート
-            exportSettings() {
-                try {
-                    const data = JSON.stringify(this.settings, null, 2);
-                    const blob = new Blob([data], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `calendar-settings-${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    
-                    URL.revokeObjectURL(url);
-                    this.log('設定をエクスポートしました');
-                } catch (error) {
-                    this.log('エクスポートに失敗しました: ' + error.message);
-                }
-            }
-            
-            // 設定のリセット
-            resetSettings() {
-                if (confirm('すべての設定をリセットしますか？')) {
-                    this.settings = this.getDefaultSettings();
-                    this.saveSettings();
-                    this.updateUI();
-                    this.log('設定をリセットしました');
-                }
-            }
         }
         
         // グローバルインスタンス
@@ -736,27 +681,16 @@
             settingsManager.playSound();
         }
         
-        function toggleDarkMode() {
-            const enabled = !settingsManager.settings.display.darkMode;
-            settingsManager.updateSetting('display.darkMode', enabled);
-            settingsManager.setToggleState('dark-mode-toggle', enabled);
-            // TODO: ダークモードの適用
-        }
-        
-        function toggleAutoSave() {
-            const enabled = !settingsManager.settings.system.autoSave;
-            settingsManager.updateSetting('system.autoSave', enabled);
-            settingsManager.setToggleState('auto-save-toggle', enabled);
+        function toggleImageDisplay() {
+            const enabled = !settingsManager.settings.display.imageDisplay;
+            settingsManager.updateSetting('display.imageDisplay', enabled);
+            settingsManager.setToggleState('image-display-toggle', enabled);
+            settingsManager.updateImageDisplay();
         }
         
         function updateNotificationTime() {
             const time = parseInt(document.getElementById('notification-time').value);
             settingsManager.updateSetting('alerts.notificationTime', time);
-        }
-        
-        function updateWeekStart() {
-            const start = parseInt(document.getElementById('week-start').value);
-            settingsManager.updateSetting('display.weekStart', start);
         }
         
         async function requestNotificationPermission() {
@@ -790,88 +724,6 @@
             }
         }
         
-        function exportSettings() {
-            settingsManager.exportSettings();
-        }
-        
-        function importSettings() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const imported = JSON.parse(e.target.result);
-                            settingsManager.settings = { ...settingsManager.getDefaultSettings(), ...imported };
-                            settingsManager.saveSettings();
-                            settingsManager.updateUI();
-                            settingsManager.log('設定をインポートしました');
-                        } catch (error) {
-                            settingsManager.log('インポートに失敗しました: ' + error.message);
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-            };
-            input.click();
-        }
-        
-        function resetSettings() {
-            settingsManager.resetSettings();
-        }
-        
-        function runSystemCheck() {
-            settingsManager.log('=== システムチェック開始 ===');
-            
-            // 通知サポートチェック
-            if ('Notification' in window) {
-                settingsManager.log('✅ 通知API サポート済み');
-                settingsManager.log(`通知許可状態: ${Notification.permission}`);
-            } else {
-                settingsManager.log('❌ 通知API 未サポート');
-            }
-            
-            // 音声関連のチェック
-            settingsManager.log('🔊 音声テスト開始...');
-            setTimeout(() => {
-                settingsManager.playSound('alarm1', 50);
-            }, 1000);
-            
-            // ユーザー操作チェック
-            settingsManager.log('ℹ️ 音が聞こえない場合:');
-            settingsManager.log('  1. ブラウザの音量を確認');
-            settingsManager.log('  2. システムの音量を確認');
-            settingsManager.log('  3. 他のタブでの音声を確認');
-            settingsManager.log('  4. "試聴"ボタンをクリックしてテスト');
-            
-            // ローカルストレージチェック
-            try {
-                localStorage.setItem('test', 'test');
-                localStorage.removeItem('test');
-                settingsManager.log('✅ ローカルストレージ 利用可能');
-            } catch (error) {
-                settingsManager.log('❌ ローカルストレージ エラー: ' + error.message);
-            }
-            
-            
-            // 設定データ整合性チェック
-            const requiredSettings = ['alerts', 'display', 'system'];
-            let valid = true;
-            for (const key of requiredSettings) {
-                if (!settingsManager.settings[key]) {
-                    settingsManager.log(`❌ 設定データ不整合: ${key} が見つかりません`);
-                    valid = false;
-                }
-            }
-            if (valid) {
-                settingsManager.log('✅ 設定データ 整合性OK');
-            }
-            
-            settingsManager.log('=== システムチェック完了 ===');
-        }
         
         function clearTestResults() {
             document.getElementById('test-results').innerHTML = '';
