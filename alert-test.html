@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アラート機能テスト</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .alert-list {
+            margin-top: 20px;
+        }
+        .alert-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .alert-info {
+            flex-grow: 1;
+        }
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 アラート機能テスト</h1>
+        
+        <!-- 通知許可セクション -->
+        <div class="test-section">
+            <h3>1. 通知許可の確認</h3>
+            <div id="permission-status" class="status warning">
+                通知許可の状態を確認中...
+            </div>
+            <button id="request-permission" onclick="requestNotificationPermission()">
+                通知許可をリクエスト
+            </button>
+        </div>
+
+        <!-- アラート設定セクション -->
+        <div class="test-section">
+            <h3>2. アラート設定</h3>
+            <div class="form-group">
+                <label for="alert-title">アラートタイトル:</label>
+                <input type="text" id="alert-title" placeholder="例: 会議の時間です" value="テストアラート">
+            </div>
+            <div class="form-group">
+                <label for="alert-message">メッセージ:</label>
+                <textarea id="alert-message" rows="3" placeholder="詳細メッセージを入力">これはアラート機能のテストです。</textarea>
+            </div>
+            <div class="form-group">
+                <label for="alert-time">アラート時間（秒後）:</label>
+                <input type="number" id="alert-time" min="1" max="300" value="10">
+            </div>
+            <div class="form-group">
+                <label for="sound-enabled">音声通知:</label>
+                <select id="sound-enabled">
+                    <option value="true">有効</option>
+                    <option value="false">無効</option>
+                </select>
+            </div>
+            <button onclick="setAlert()">アラートを設定</button>
+            <button onclick="testInstantAlert()" style="background: #28a745;">即座にテスト</button>
+        </div>
+
+        <!-- アクティブなアラート一覧 -->
+        <div class="test-section">
+            <h3>3. アクティブなアラート</h3>
+            <div id="active-alerts" class="alert-list">
+                <p>設定されたアラートはありません</p>
+            </div>
+            <button onclick="clearAllAlerts()" class="btn-danger">全てのアラートをクリア</button>
+        </div>
+
+        <!-- テスト結果 -->
+        <div class="test-section">
+            <h3>4. テスト結果</h3>
+            <div id="test-results"></div>
+            <button onclick="runAllTests()" style="background: #17a2b8;">全機能テスト実行</button>
+        </div>
+    </div>
+
+    <script>
+        // アラート管理オブジェクト
+        const AlertManager = {
+            alerts: new Map(),
+            audioContext: null,
+            
+            init() {
+                this.checkNotificationPermission();
+                this.updateActiveAlerts();
+            },
+            
+            async checkNotificationPermission() {
+                const status = document.getElementById('permission-status');
+                
+                if (!('Notification' in window)) {
+                    status.className = 'status error';
+                    status.textContent = 'このブラウザは通知をサポートしていません';
+                    return false;
+                }
+                
+                const permission = Notification.permission;
+                switch(permission) {
+                    case 'granted':
+                        status.className = 'status success';
+                        status.textContent = '✅ 通知許可済み';
+                        return true;
+                    case 'denied':
+                        status.className = 'status error';
+                        status.textContent = '❌ 通知が拒否されています';
+                        return false;
+                    default:
+                        status.className = 'status warning';
+                        status.textContent = '⚠️ 通知許可が必要です';
+                        return false;
+                }
+            },
+            
+            async requestPermission() {
+                if ('Notification' in window) {
+                    const permission = await Notification.requestPermission();
+                    this.checkNotificationPermission();
+                    return permission === 'granted';
+                }
+                return false;
+            },
+            
+            playAlertSound() {
+                // Web Audio APIを使った簡単なビープ音
+                try {
+                    if (!this.audioContext) {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.5);
+                } catch (error) {
+                    console.warn('音声再生に失敗:', error);
+                }
+            },
+            
+            showNotification(title, message, soundEnabled = true) {
+                if (Notification.permission === 'granted') {
+                    const notification = new Notification(title, {
+                        body: message,
+                        icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMwMDdiZmYiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyMmMyIDAgNC0xIDQtM0g4YzAgMiAyIDMgNCAzem0tNi0zaDEyVjE3TDYgMTZ2M3ptMC03djRsNCAuNjJWMTZjMC01LjUgMy02IDMtNiAwIDMgMiAzIDMgM3YtNGMwLTQtMy0xMC04LTEwLTQgMC04IDUtOCAxMCAwLTItMi00LTItN3YtMWMwLTEuNSAxLTMgMi41LTNzMi41IDEuNSAyLjUgM3YxeiIvPgo8L3N2Zz4KPC9zdmc+',
+                        badge: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNmZjY2MDAiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyMmMyIDAgNC0xIDQtM0g4YzAgMiAyIDMgNCAzem0tNi0zaDEyVjE3TDYgMTZ2M3ptMC03djRsNCAuNjJWMTZjMC01LjUgMy02IDMtNiAwIDMgMiAzIDMgM3YtNGMwLTQtMy0xMC04LTEwLTQgMC04IDUtOCAxMCAwLTItMi00LTItN3YtMWMwLTEuNSAxLTMgMi41LTNzMi41IDEuNSAyLjUgM3YxeiIvPgo8L3N2Zz4KPC9zdmc+',
+                        requireInteraction: true
+                    });
+                    
+                    if (soundEnabled) {
+                        this.playAlertSound();
+                    }
+                    
+                    // 10秒後に自動的に閉じる
+                    setTimeout(() => {
+                        notification.close();
+                    }, 10000);
+                    
+                    return notification;
+                }
+                return null;
+            },
+            
+            setAlert(title, message, delaySeconds, soundEnabled = true) {
+                const alertId = Date.now().toString();
+                const alertTime = new Date(Date.now() + delaySeconds * 1000);
+                
+                const timeoutId = setTimeout(() => {
+                    this.showNotification(title, message, soundEnabled);
+                    this.alerts.delete(alertId);
+                    this.updateActiveAlerts();
+                    this.logTest(`アラート発動: ${title}`);
+                }, delaySeconds * 1000);
+                
+                this.alerts.set(alertId, {
+                    id: alertId,
+                    title,
+                    message,
+                    alertTime,
+                    timeoutId,
+                    soundEnabled
+                });
+                
+                this.updateActiveAlerts();
+                this.logTest(`アラート設定: ${title} (${delaySeconds}秒後)`);
+                return alertId;
+            },
+            
+            cancelAlert(alertId) {
+                const alert = this.alerts.get(alertId);
+                if (alert) {
+                    clearTimeout(alert.timeoutId);
+                    this.alerts.delete(alertId);
+                    this.updateActiveAlerts();
+                    this.logTest(`アラートキャンセル: ${alert.title}`);
+                }
+            },
+            
+            clearAllAlerts() {
+                this.alerts.forEach(alert => {
+                    clearTimeout(alert.timeoutId);
+                });
+                this.alerts.clear();
+                this.updateActiveAlerts();
+                this.logTest('全アラートをクリア');
+            },
+            
+            updateActiveAlerts() {
+                const container = document.getElementById('active-alerts');
+                
+                if (this.alerts.size === 0) {
+                    container.innerHTML = '<p>設定されたアラートはありません</p>';
+                    return;
+                }
+                
+                let html = '';
+                this.alerts.forEach(alert => {
+                    const timeLeft = Math.max(0, Math.ceil((alert.alertTime.getTime() - Date.now()) / 1000));
+                    html += `
+                        <div class="alert-item">
+                            <div class="alert-info">
+                                <strong>${alert.title}</strong><br>
+                                <small>${alert.message}</small><br>
+                                <small>残り: ${timeLeft}秒 | 音声: ${alert.soundEnabled ? '有効' : '無効'}</small>
+                            </div>
+                            <div class="alert-actions">
+                                <button class="btn-small btn-danger" onclick="AlertManager.cancelAlert('${alert.id}')">
+                                    キャンセル
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            },
+            
+            logTest(message) {
+                const results = document.getElementById('test-results');
+                const timestamp = new Date().toLocaleTimeString();
+                results.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+                results.scrollTop = results.scrollHeight;
+            }
+        };
+        
+        // グローバル関数
+        async function requestNotificationPermission() {
+            await AlertManager.requestPermission();
+        }
+        
+        function setAlert() {
+            const title = document.getElementById('alert-title').value;
+            const message = document.getElementById('alert-message').value;
+            const delaySeconds = parseInt(document.getElementById('alert-time').value);
+            const soundEnabled = document.getElementById('sound-enabled').value === 'true';
+            
+            if (Notification.permission !== 'granted') {
+                alert('通知許可が必要です。まず通知許可をリクエストしてください。');
+                return;
+            }
+            
+            AlertManager.setAlert(title, message, delaySeconds, soundEnabled);
+        }
+        
+        function testInstantAlert() {
+            if (Notification.permission !== 'granted') {
+                alert('通知許可が必要です。');
+                return;
+            }
+            
+            const title = document.getElementById('alert-title').value;
+            const message = document.getElementById('alert-message').value;
+            const soundEnabled = document.getElementById('sound-enabled').value === 'true';
+            
+            AlertManager.showNotification(title, message, soundEnabled);
+            AlertManager.logTest('即座にテスト実行');
+        }
+        
+        function clearAllAlerts() {
+            AlertManager.clearAllAlerts();
+        }
+        
+        function runAllTests() {
+            AlertManager.logTest('=== 全機能テスト開始 ===');
+            
+            // 通知許可チェック
+            if (Notification.permission !== 'granted') {
+                AlertManager.logTest('❌ 通知許可が必要です');
+                return;
+            }
+            
+            // テスト1: 即座にアラート
+            AlertManager.showNotification('テスト1', '即座にアラートのテスト', true);
+            AlertManager.logTest('✅ テスト1: 即座にアラート');
+            
+            // テスト2: 5秒後のアラート
+            AlertManager.setAlert('テスト2', '5秒後のアラートテスト', 5, true);
+            AlertManager.logTest('✅ テスト2: 5秒後のアラート設定');
+            
+            // テスト3: 10秒後の音声なしアラート
+            AlertManager.setAlert('テスト3', '音声なしアラートテスト', 10, false);
+            AlertManager.logTest('✅ テスト3: 10秒後の音声なしアラート設定');
+            
+            AlertManager.logTest('=== 全機能テスト完了 ===');
+        }
+        
+        // アクティブアラートの更新タイマー
+        setInterval(() => {
+            if (AlertManager.alerts.size > 0) {
+                AlertManager.updateActiveAlerts();
+            }
+        }, 1000);
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            AlertManager.init();
+        });
+    </script>
+</body>
+</html>
